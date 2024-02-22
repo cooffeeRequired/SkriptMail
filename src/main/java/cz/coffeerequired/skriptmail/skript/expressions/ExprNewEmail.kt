@@ -1,6 +1,10 @@
 package cz.coffeerequired.skriptmail.skript.expressions
 
 import ch.njol.skript.Skript
+import ch.njol.skript.doc.Description
+import ch.njol.skript.doc.Examples
+import ch.njol.skript.doc.Name
+import ch.njol.skript.doc.Since
 import ch.njol.skript.lang.Expression
 import ch.njol.skript.lang.ExpressionType
 import ch.njol.skript.lang.SkriptParser
@@ -13,7 +17,25 @@ import cz.coffeerequired.skriptmail.api.email.Email
 import cz.coffeerequired.skriptmail.api.tryGetById
 import org.bukkit.event.Event
 
-@Suppress("UNUSED")
+@Name("Create/Make new email form")
+@Description("You can create empty email form using account or configuration string and then you can set recipients/content/template/subject")
+@Examples("""
+      using account from our 'config.yml'
+      
+      # 'config.yml'
+      # accounts:
+      #    example:
+      #      ... account details
+      
+    set {_email} to new email using account "example"
+    .... any of configuration of the email form
+    
+    # using configuration string, format: <service>:<host>:<port>@[starttls=boolean]&[auth=boolean]
+    
+    set {_email} to new email with credentials "smtp:google.com:567@auth=true&starttls=true" using "test@gmail.com"
+    .... any of configuration of the email form
+""")
+@Since("1.0")
 class ExprNewEmail : SimpleExpression<Email>() {
 
     private var line: Int = -1

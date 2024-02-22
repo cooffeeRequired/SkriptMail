@@ -44,7 +44,7 @@ object Types {
                 .name("email")
                 .description("Representing new email form", """
                     ```applescript
-                        set {_email} to new email with credentials "smtp:host:port@auth=true&starttls=true"
+                        set {_email} to new email with credentials "smtp:google.com:567" using "test@gmail.com"
                         set {_email} to new email using account "example"
                     ````
                 """.trimIndent())

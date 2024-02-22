@@ -1,7 +1,10 @@
 package cz.coffeerequired.skriptmail.skript.expressions
 
 import ch.njol.skript.Skript
+import ch.njol.skript.doc.Description
+import ch.njol.skript.doc.Examples
 import ch.njol.skript.doc.Name
+import ch.njol.skript.doc.Since
 import ch.njol.skript.lang.Expression
 import ch.njol.skript.lang.ExpressionType
 import ch.njol.skript.lang.SkriptParser
@@ -16,10 +19,22 @@ import org.bukkit.event.Event
 import java.util.TreeMap
 import java.util.regex.Pattern
 
-@Name("")
+@Name("Configured Email Templates")
+@Description("You can get all of your pre-configured email templates or one of them")
+@Examples("""
+    set {_templates::*} to all email templates
+    
+    # without re-rendered variables in the template,
+    set {_template} to email template "main"
+    
+    set {_d::hello} to "hello, world."
+    set {_template} to email template "main" with objects {_d::*}
+    # the variable in the template need to starts 'it::' e.g. like this `{it::*}` the star can be replaced by anything
+    # for e.g. you define 'set {_d::hello} to "hello, world."' and then you have in the template '{it::hello}'
+    # it's will be replaced by the reload value so "hello, world' during the parsing the html template as content of email.
+""")
+@Since("1.0")
 class ExprTemplates : SimpleExpression<String>() {
-
-
     private fun getVariables(html: String): List<String> {
         val pattern = Pattern.compile("\\{(.*?)}")
         val matcher = pattern.matcher(html)
@@ -51,6 +66,7 @@ class ExprTemplates : SimpleExpression<String>() {
         return content
     }
 
+    @Suppress("unchecked_cast")
     override fun get(event: Event): Array<String?> {
         return when (line) {
             0 -> ConfigFields.TEMPLATES.map { it.key.replace(".html", "") }.toTypedArray()
@@ -105,6 +121,7 @@ class ExprTemplates : SimpleExpression<String>() {
     private var line = -1
     private var withData = false
 
+    @Suppress("unchecked_cast")
     override fun init(
         expressions: Array<Expression<*>?>?,
         matchedPattern: Int,

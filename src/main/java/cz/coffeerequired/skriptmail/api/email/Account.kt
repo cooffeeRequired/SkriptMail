@@ -5,12 +5,12 @@ import java.util.*
 
 class Account(
     val address: String?,
-    private val type: EmailFieldType?,
-    private val host: String?,
-    private val port: Long? = 0,
+    val type: EmailFieldType?,
+    val host: String?,
+    val port: Long? = 0,
     var auth: Boolean?,
     var starttls: Boolean?,
-    private var id: String?,
+    var id: String?,
     var authUsername: String?,
     var authPassword: String?
 ) {

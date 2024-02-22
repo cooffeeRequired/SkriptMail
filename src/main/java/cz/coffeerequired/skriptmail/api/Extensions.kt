@@ -56,7 +56,7 @@ fun <T : Enum<T>> ConfigurationSection.getEnum(path: String, enum: KClass<T>): T
 }
 
 fun tryGetById(value: String): Account? {
-    return ConfigFields.ACCOUNTS.find { it.component9().equals(value, false) }
+    return ConfigFields.ACCOUNTS.find { it.id.equals(value, false) }
 }
 fun tryGetContent(value: String): String {
     return ConfigFields.TEMPLATES.getOrDefault("$value.html", "")

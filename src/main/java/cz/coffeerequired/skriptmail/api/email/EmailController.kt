@@ -1,5 +1,6 @@
 package cz.coffeerequired.skriptmail.api.email
 
+import ch.njol.skript.Skript
 import cz.coffeerequired.skriptmail.SkriptMail
 import cz.coffeerequired.skriptmail.SkriptMail.Companion.instance
 import cz.coffeerequired.skriptmail.api.ConfigFields
@@ -44,41 +45,47 @@ class EmailController(
 
     fun setForm(form: Form) { this.form = form }
     fun send() {
+        try {
+        if (account.address.isNullOrEmpty()) throw Exception("Address is required!")
+        if (form.content.isNullOrEmpty()) form.content = "No Content"
+        if (form.recipients.isNullOrEmpty()) throw Exception("Recipients are required! Recipients of email are empty or null!")
+        if (form.subject.isNullOrEmpty()) form.subject = "No Subject"
+
         Bukkit.getScheduler().runTaskAsynchronously(instance(), Runnable {
-            val email: Email?
-            val popBuilder = EmailBuilder.startingBlank()
-            popBuilder.withSubject(this.form.subject)
-            if (this.account.address?.contains(";") == true) {
-                val parts = this.account.address.split(";")
-                popBuilder.from(parts[0], parts[1])
-            } else {
-                this.account.address?.let { popBuilder.from(it) }
-            }
-            if (this.form.recipients!!.size < 1) {
-                popBuilder.to(this.form.recipients!![0])
-            } else {
-                popBuilder.toMultiple(*this.form.recipients!!.toTypedArray())
-            }
-            if (this.form.usingTemplate) {
-                popBuilder.withHTMLText(this.form.content)
-            } else {
-                popBuilder.withPlainText(this.form.content)
-            }
-            email = popBuilder.buildEmail()
-            try {
+                val email: Email?
+                val popBuilder = EmailBuilder.startingBlank()
+                popBuilder.withSubject(this.form.subject)
+
+                if (this.account.address.contains(";")) {
+                    val parts = this.account.address.split(";")
+                    popBuilder.from(parts[0], parts[1])
+                } else {
+                    this.account.address.let { popBuilder.from(it) }
+                }
+                if (this.form.recipients!!.size < 1) {
+                    popBuilder.to(this.form.recipients!![0])
+                } else {
+                    popBuilder.toMultiple(*this.form.recipients!!.toTypedArray())
+                }
+                if (this.form.usingTemplate) {
+                    popBuilder.withHTMLText(this.form.content)
+                } else {
+                    popBuilder.withPlainText(this.form.content)
+                }
+                email = popBuilder.buildEmail()
                 this.mailer!!.sendMail(email)
                 if (ConfigFields.PROJECT_DEBUG == true) SkriptMail.gLogger().info("Email was sent successfully!")
-            } catch (ex: Exception) {
-                if (ConfigFields.PROJECT_DEBUG == true) SkriptMail.gLogger().warn("Sending mail failed! Caused by: %s", ex.cause!!.message)
-            }
         })
+        } catch (ex: Exception) {
+            if (ConfigFields.PROJECT_DEBUG == true) SkriptMail.gLogger().error("Sending mail failed! Caused by: %s", if (ex.cause != null) ex.cause!!.message else ex.message)
+        }
     }
 
     companion object {
         class Form(
             val recipients: MutableList<String>?,
-            val subject: String?,
-            val content: String?,
+            var subject: String?,
+            var content: String?,
             var usingTemplate: Boolean = false
         ) { companion object { fun formBuilder(): FormBuilder { return FormBuilder() } } }
 
