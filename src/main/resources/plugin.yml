@@ -1,0 +1,33 @@
+name: SkriptMail
+version: '${version}'
+revision-version: "2001f"
+main: cz.coffeerequired.skriptmail.SkriptMail
+api-version: '1.20'
+prefix: skript-mail
+depend: [ Skript ]
+authors: [ CoffeeRequired ]
+libraries:
+  - com.sun.activation:jakarta.activation:2.0.1
+  - com.sun.mail:jakarta.mail:2.0.1
+  - jakarta.xml.bind:jakarta.xml.bind-api:4.0.1
+  - com.sanctionco.jmail:jmail:1.6.2
+  - com.pivovarit:throwing-function:1.5.1
+  - org.simplejavamail:simple-java-mail:8.6.3
+  - org.simplejavamail:core-module:8.6.3
+  - org.eclipse.angus:angus-mail:2.0.2
+description: The Simple addon for sending emails directly from Skript
+commands:
+  skmail:
+    description: the command for skmail
+    usage: /skmail
+    aliases:
+      - skmail
+      - skriptmail
+permission:
+  skmail.admin:
+      default: op
+      description: Permission to receive error messages
+  skmail.command:
+      default: op
+      description: Permission to use SkMail's cz.coffeerequired.skriptmail.main command
+

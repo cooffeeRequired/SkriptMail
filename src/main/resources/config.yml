@@ -1,0 +1,13 @@
+project-debug: true
+email-debug: true
+accounts:
+  example:
+    address: example@example.com
+    type: SMTP # SMTP, IMAP, POP3 -> currently works only SMTP.
+    host: smtp.example.com
+    port: 587
+    auth: true
+    starttls: true
+    auth-credentials:
+      username: <username>
+      password: <password | token | outh2>
