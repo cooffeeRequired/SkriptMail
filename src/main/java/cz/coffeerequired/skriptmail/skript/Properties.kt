@@ -10,6 +10,7 @@ import ch.njol.skript.lang.Expression
 import ch.njol.skript.lang.SkriptParser
 import ch.njol.util.Kleenean
 import ch.njol.util.coll.CollectionUtils
+import cz.coffeerequired.skriptmail.SkriptMail
 import cz.coffeerequired.skriptmail.api.EmailFieldType
 import cz.coffeerequired.skriptmail.api.email.Account
 import cz.coffeerequired.skriptmail.api.email.Email
@@ -263,11 +264,13 @@ class PropsEmailSubject : PropertyExpression<Email, String>() {
     reset body of {_email}
 """)
 class PropsEmailTemplate : PropertyExpression<Email, String>() {
-    companion object { init { register(PropsEmailTemplate::class.java, String::class.java, "[email] (template|body)", "emails") }}
+
+    private var isTemplate: Boolean = false
+    companion object { init { register(PropsEmailTemplate::class.java, String::class.java, "[email] (:template[s]|body)", "emails") }}
     override fun toString(event: Event?, debug: Boolean): String { return "email template/body of ${expr.toString(event, debug)}"}
     @Suppress("UNCHECKED_CAST")
     override fun init(expressions: Array<out Expression<*>>?, matchedPattern: Int, isDelayed: Kleenean?, parseResult: SkriptParser.ParseResult?): Boolean {
-        expr = expressions?.get(0) as Expression<Email>; return true
+        expr = expressions?.get(0) as Expression<Email>; isTemplate = parseResult!!.hasTag("template"); return true
     }
     override fun getReturnType(): Class<out String> { return String::class.java }
     override fun get(event: Event?, source: Array<out Email>?): Array<String?> { return source?.map { it.content }!!.toTypedArray() }
@@ -282,7 +285,16 @@ class PropsEmailTemplate : PropertyExpression<Email, String>() {
         val o = expr.getSingle(event)
         assert(o != null)
         when (mode) {
-            ChangeMode.SET -> { for (d in delta!!.iterator()) { o?.content = d as String } }
+            ChangeMode.SET -> {
+                for (d in delta!!.iterator()) {
+                    o?.content = d as String
+                    if (!isTemplate && o!!.hasTemplate) {
+                        SkriptMail.gLogger().warn("Template is set! You can't change the body of email like that, use 'reset body of %email%'")
+                        return
+                    }
+                    if (isTemplate) o!!.hasTemplate = true
+                }
+            }
             ChangeMode.RESET -> { o?.content = "" }
             ChangeMode.DELETE -> {}
             else -> {}
