@@ -51,7 +51,7 @@ now we have predefined account set, lets works with account now, ex1. will show 
 ```
 #### Lets play with templates a bit
 in the addon folder so `SkriptMail` you will found folder `templates` and also the predefined template `main.html`
-all templates need to be a `.html`\
+all templates need to be a `.html`
 ```html
 <style>
     /* Reset CSS */
