@@ -9,6 +9,7 @@
 <hr>
 
 ### Documentation
+> [SkriptHub](https://skripthub.net/docs/?addon=SkMail)\
 > Not exists yet, your that [Intro](#introduction) 
 
 ### Introduction
