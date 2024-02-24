@@ -9,7 +9,8 @@
 <hr>
 
 ### Documentation
-> Not exists yet, your that [Intro](#introduction) 
+> [SkriptHub](https://skripthub.net/docs/?addon=SkMail)\
+> [Intro](#introduction) 
 
 ### Introduction
  SkMail is a very simple Script Mailer now you can send email directly from your minecraft server, but you don't have to just send plain text to someone on mail, **SkMail** can also use templates plus render variables in them
