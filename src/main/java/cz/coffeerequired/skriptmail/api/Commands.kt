@@ -25,6 +25,7 @@ class Commands(private val logger: Logger, private val config: Config) : TabExec
                             completions.add("config")
                             completions.add("all")
                             completions.add("templates")
+                            completions.add("mailbox")
                         }
                     }
                 }
@@ -102,7 +103,7 @@ class Commands(private val logger: Logger, private val config: Config) : TabExec
         if (sender.hasPermission("skmail.admin")) {
             if (command.name.equals("skmail", true) || command.name.equals("skriptmail", true)) {
                 if (args.isEmpty()) {
-                    logger.info("&7Usage: &e/skmail reload <config|all|templates>", sender = sender)
+                    logger.info("&7Usage: &e/skmail reload <config|all|templates|mailbox>", sender = sender)
                     logger.info("&7Usage: &e/skmail about", sender = sender)
                     logger.info("&7Usage: &e/skmail history", sender = sender)
                     return true
@@ -140,10 +141,15 @@ class Commands(private val logger: Logger, private val config: Config) : TabExec
                         reloadConfig(sender)
                         logger.info("Reload finished...", sender = sender)
                         logger.emptyLine(sender)
+                    } else if (args[1] == "mailbox") {
+                        logger.info("Reloading mailbox setting...", sender = sender)
+                        config.loadMailboxSettings()
+                        logger.info("Reloading mailbox finished...", sender = sender)
                     } else if (args[1] == "all") {
-                        logger.info("Reloading all (templates/config)...", sender = sender)
+                        logger.info("Reloading all (templates/config/mailbox)...", sender = sender)
                         reloadConfig(sender)
                         this.config.loadTemplates()
+                        this.config.loadMailboxSettings()
                         logger.info(
                             "Reload finished... was loaded &a%s&7 templates",
                             ConfigFields.TEMPLATES.size,

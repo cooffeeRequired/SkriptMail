@@ -1,6 +1,7 @@
 package cz.coffeerequired.skriptmail.api.email
 
 import cz.coffeerequired.skriptmail.SkriptMail
+import cz.coffeerequired.skriptmail.api.WillUsed
 
 class Email(
     var field: Account,
@@ -72,5 +73,11 @@ class Email(
             }
             return tokens
         }
+    }
+}
+
+@WillUsed class EmailAddress(val name: String, val email: String) {
+    override fun toString(): String {
+        return "email address $email for name $name"
     }
 }

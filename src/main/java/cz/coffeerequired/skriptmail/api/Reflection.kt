@@ -19,3 +19,5 @@ fun isCalledFromExactMethod(methodName: String): Boolean {
     val stackStrace = Thread.currentThread().stackTrace
     return stackStrace.any { it.methodName == methodName }
 }
+
+annotation class WillUsed

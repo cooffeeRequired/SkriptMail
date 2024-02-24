@@ -52,16 +52,14 @@ dependencies {
     /* Paper */ implementation(group: 'io.papermc.paper', name: 'paper-api', version: '1.20.4-R0.1-SNAPSHOT')
     /* Skript */ implementation(group: 'com.github.SkriptLang', name: 'Skript', version: '2.8.2') { transitive = false}
     /*SimpleMail */
-        implementation group: 'com.sun.activation', name: 'jakarta.activation', version: '2.0.1'
-        implementation group: 'com.sun.mail', name: 'jakarta.mail', version: '2.0.1'
-        implementation group: 'jakarta.xml.bind', name: 'jakarta.xml.bind-api', version: '4.0.1'
-        implementation group: 'com.sanctionco.jmail', name: 'jmail', version: '1.6.2'
-        implementation group: 'com.pivovarit', name: 'throwing-function', version: '1.5.1'
-        implementation group: 'org.eclipse.angus', name: 'angus-mail', version: '2.0.2'
+//        implementation group: 'com.sun.activation', name: 'jakarta.activation', version: '2.0.1'
+//        implementation group: 'com.sun.mail', name: 'jakarta.mail', version: '2.0.1'
+//        implementation group: 'jakarta.xml.bind', name: 'jakarta.xml.bind-api', version: '4.0.1'
+//        implementation group: 'com.sanctionco.jmail', name: 'jmail', version: '1.6.2'
+//        implementation group: 'com.pivovarit', name: 'throwing-function', version: '1.5.1'
+//        implementation group: 'org.eclipse.angus', name: 'angus-mail', version: '2.0.2'
         implementation("org.simplejavamail:simple-java-mail:8.6.3")
         implementation("org.simplejavamail:core-module:8.6.3")
-
-
 }
 shadowJar {
     dependencies {

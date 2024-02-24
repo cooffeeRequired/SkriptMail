@@ -1,5 +1,6 @@
 package cz.coffeerequired.skriptmail.skript
 
+import ch.njol.skript.Skript
 import ch.njol.skript.classes.Changer.ChangeMode
 import ch.njol.skript.doc.Description
 import ch.njol.skript.doc.Examples
@@ -13,10 +14,48 @@ import ch.njol.util.coll.CollectionUtils
 import cz.coffeerequired.skriptmail.SkriptMail
 import cz.coffeerequired.skriptmail.api.EmailFieldType
 import cz.coffeerequired.skriptmail.api.email.Account
+import cz.coffeerequired.skriptmail.api.email.BukkitEmailMessageEvent
 import cz.coffeerequired.skriptmail.api.email.Email
+import cz.coffeerequired.skriptmail.api.email.EmailAddress
 import org.bukkit.event.Event
 import java.util.*
 
+@Name("Name or Email from EmailAddress email-(recipient/sender)")
+@Since("1.0")
+@Description("Get email or name from email-(recipient/sender) in the 'on email receive event'")
+@Examples("""
+    on email receive:
+        broadcast event-recipients's name
+        broadcast event-sender's name
+        broadcast event-recipients's email
+        broadcast event-sender's email
+""")
+class PropsEmailAddress : PropertyExpression<EmailAddress, String>() {
+    companion object { init { register(PropsEmailAddress::class.java, String::class.java, "(1:email|2:name)", "emailaddresss") }}
+
+    private var mark = 0
+
+    override fun toString(event: Event?, debug: Boolean): String {
+        return "${if(mark == 1) "email" else "name"} of ${expr.toString(event, debug)}"
+    }
+    @Suppress("UNCHECKED_CAST")
+    override fun init(expressions: Array<out Expression<*>>?, matchedPattern: Int, isDelayed: Kleenean?, parseResult: SkriptParser.ParseResult?): Boolean {
+        if (!parser.isCurrentEvent(BukkitEmailMessageEvent::class.java)) {
+            Skript.error("Those expression can be used only with 'on received email'")
+            return false
+        }
+        expr = expressions?.get(0) as Expression<EmailAddress>; return true
+    }
+    override fun getReturnType(): Class<out String> { return String::class.java }
+    override fun get(event: Event?, source: Array<out EmailAddress>?): Array<String?> {
+        return when (mark) {
+            1 -> source!!.map { it.email }.toTypedArray()
+            2 -> source!!.map { it.name }.toTypedArray()
+            else -> arrayOfNulls(0)
+        }
+    }
+
+}
 
 @Name("Id of Account")
 @Since("1.0")

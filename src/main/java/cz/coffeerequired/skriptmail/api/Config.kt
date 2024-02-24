@@ -174,6 +174,7 @@ class Config(
         matchConfiguration()
         loadFileHandler(null, "templates/main.html", replace = false, true)
         loadConfigs()
+        loadMailboxSettings()
 
     }
     private var configFile: File? = null
@@ -238,6 +239,22 @@ class Config(
             val keys = section!!.getKeys(false)
             if (keys.isNotEmpty()) { for (key in keys) { getExactRecord(section, key)?.let { list.add(it) } } }
             ConfigFields.ACCOUNTS = list
+        } catch (ex: Exception) {
+            this.plugin.logger().exception(ex, msg = null)
+        }
+    }
+
+    public fun loadMailboxSettings() {
+        try {
+            val mailSection = this.config.getConfigurationSection("mailbox")
+            if (mailSection != null) {
+                ConfigFields.MAILBOX_ENABLED = mailSection.getBoolean("enabled")
+                ConfigFields.MAILBOX_FILTER = mailSection.getString("filter")?.let { Regex(it) }
+                ConfigFields.MAILBOX_REFRESH_RATE = mailSection.getLong("refresh-rate")
+                ConfigFields.MAILBOX_PER_REQUEST = mailSection.getLong("max-fetch-per-request")
+                ConfigFields.MAILBOX_RATE = mailSection.getString("rate-unit")?.let { MailboxRateUnit.valueOf(it.uppercase())}!!
+                ConfigFields.MAILBOX_FOLDERS = mailSection.getStringList("folders")
+            }
         } catch (ex: Exception) {
             this.plugin.logger().exception(ex, msg = null)
         }

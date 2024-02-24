@@ -6,6 +6,9 @@ import ch.njol.skript.lang.ParseContext
 import ch.njol.skript.registrations.Classes
 import cz.coffeerequired.skriptmail.api.email.Account
 import cz.coffeerequired.skriptmail.api.email.Email
+import cz.coffeerequired.skriptmail.api.email.EmailAddress
+import cz.coffeerequired.skriptmail.api.email.ReceivedEmail
+
 
 @Suppress("UNUSED")
 object Types {
@@ -63,5 +66,42 @@ object Types {
                     override fun canParse(context: ParseContext): Boolean { return false }
                 }
         ))
+
+        Classes.registerClass(
+            ClassInfo(ReceivedEmail::class.java, "receivedemail")
+                .user("received email?")
+                .name("Received Email")
+                .description("The received email from IMAP Inbox")
+                .parser(object : Parser<ReceivedEmail>() {
+                    override fun toString(o: ReceivedEmail?, flags: Int): String {
+                        return o.toString()
+                    }
+                    override fun toVariableNameString(o: ReceivedEmail?): String {
+                        return toString(o, 0)
+                    }
+                    override fun canParse(context: ParseContext): Boolean {
+                        return false
+                    }
+                })
+        )
+
+        Classes.registerClass(
+            ClassInfo(EmailAddress::class.java, "emailaddress")
+                .user("email address?")
+                .name("Email Address")
+                .description("Representing the Email Address (IAddress)")
+                .parser(object : Parser<EmailAddress>(){
+                    override fun toString(o: EmailAddress?, flags: Int): String {
+                        return o.toString()
+                    }
+
+                    override fun toVariableNameString(o: EmailAddress?): String {
+                        return toString(o, 0)
+                    }
+                    override fun canParse(context: ParseContext): Boolean {
+                        return false
+                    }
+                })
+        )
     }
 }

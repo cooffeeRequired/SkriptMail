@@ -1,5 +1,13 @@
 project-debug: true
 email-debug: true
+mailbox:
+    enabled: true # default false
+    folders:
+      - something
+    filter: # regex
+    refresh-rate: 1000
+    rate-unit: SECONDS # MILIS, SECONDS, MINUTES, HOURS
+    max-fetch-per-request: 100 # default 100
 accounts:
   example:
     address: example@example.com

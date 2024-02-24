@@ -8,8 +8,6 @@ import ch.njol.skript.doc.Since
 import ch.njol.skript.lang.Effect
 import ch.njol.skript.lang.Expression
 import ch.njol.skript.lang.SkriptParser
-import ch.njol.skript.log.ErrorQuality
-import ch.njol.skript.util.AsyncEffect
 import ch.njol.util.Kleenean
 import cz.coffeerequired.skriptmail.SkriptMail
 import cz.coffeerequired.skriptmail.api.Config
@@ -17,6 +15,7 @@ import cz.coffeerequired.skriptmail.api.email.Email
 import cz.coffeerequired.skriptmail.api.email.EmailController
 import org.bukkit.event.Event
 import java.util.*
+
 @Name("Send Email")
 @Description("That will send the email to the recipients in asynchronous mode..")
 @Examples("""
@@ -37,6 +36,7 @@ import java.util.*
 """)
 @Since("1.0")
 class EffTransmitEmail: Effect() {
+
     override fun execute(event: Event?) {
         val email = this.emailExpr.getSingle(event)
         if (email != null) {
@@ -106,12 +106,12 @@ class EffTransmitEmail: Effect() {
     private lateinit var emailAuthPassword: Expression<String>
     private var line = -1
 
-    companion object { init {
+    companion object {
+        init {
         Skript.registerEffect(
             EffTransmitEmail::class.java,
             "(send|transmit|post) email %email%",
             "(send|transmit|post) email %email% using auth username %string% and password %string%"
         )
     } }
-
 }

@@ -1,6 +1,5 @@
 package cz.coffeerequired.skriptmail.api.email
 
-import ch.njol.skript.Skript
 import cz.coffeerequired.skriptmail.SkriptMail
 import cz.coffeerequired.skriptmail.SkriptMail.Companion.instance
 import cz.coffeerequired.skriptmail.api.ConfigFields
@@ -29,10 +28,12 @@ class EmailController(
                     MailerBuilder
                         .withSMTPServer(host, port!!.toInt(), authU ?: authUsername, authP ?: authPassword)
                         .withTransportStrategy(if (starttls == true) TransportStrategy.SMTP_TLS else TransportStrategy.SMTP)
+                        .async()
                         .buildMailer()
                 } else {
                     MailerBuilder
                         .withSMTPServer(host, port!!.toInt())
+                        .async()
                         .withTransportStrategy(if (starttls == true) TransportStrategy.SMTP_TLS else TransportStrategy.SMTP)
                         .buildMailer()
                 }
@@ -46,36 +47,41 @@ class EmailController(
     fun setForm(form: Form) { this.form = form }
     fun send() {
         try {
-        if (account.address.isNullOrEmpty()) throw Exception("Address is required!")
-        if (form.content.isNullOrEmpty()) form.content = "No Content"
-        if (form.recipients.isNullOrEmpty()) throw Exception("Recipients are required! Recipients of email are empty or null!")
-        if (form.subject.isNullOrEmpty()) form.subject = "No Subject"
+            if (account.address.isNullOrEmpty()) throw Exception("Address is required!")
+            if (form.content.isNullOrEmpty()) form.content = "No Content"
+            if (form.recipients.isNullOrEmpty()) throw Exception("Recipients are required! Recipients of email are empty or null!")
+            if (form.subject.isNullOrEmpty()) form.subject = "No Subject"
 
-        Bukkit.getScheduler().runTaskAsynchronously(instance(), Runnable {
-                val email: Email?
-                val popBuilder = EmailBuilder.startingBlank()
-                popBuilder.withSubject(this.form.subject)
+            Bukkit.getScheduler().runTaskAsynchronously(instance(), Runnable {
+                    val email: Email?
+                    val popBuilder = EmailBuilder.startingBlank()
+                    popBuilder.withSubject(this.form.subject)
 
-                if (this.account.address.contains(";")) {
-                    val parts = this.account.address.split(";")
-                    popBuilder.from(parts[0], parts[1])
-                } else {
-                    this.account.address.let { popBuilder.from(it) }
-                }
-                if (this.form.recipients!!.size < 1) {
-                    popBuilder.to(this.form.recipients!![0])
-                } else {
-                    popBuilder.toMultiple(*this.form.recipients!!.toTypedArray())
-                }
-                if (this.form.usingTemplate) {
-                    popBuilder.withHTMLText(this.form.content)
-                } else {
-                    popBuilder.withPlainText(this.form.content)
-                }
-                email = popBuilder.buildEmail()
-                this.mailer!!.sendMail(email)
-                if (ConfigFields.PROJECT_DEBUG == true) SkriptMail.gLogger().info("Email was sent successfully!")
-        })
+                    if (this.account.address.contains(";")) {
+                        val parts = this.account.address.split(";")
+                        popBuilder.from(parts[0], parts[1])
+                    } else {
+                        this.account.address.let { popBuilder.from(it) }
+                    }
+                    if (this.form.recipients!!.size < 1) {
+                        popBuilder.to(this.form.recipients!![0])
+                    } else {
+                        popBuilder.toMultiple(*this.form.recipients!!.toTypedArray())
+                    }
+                    if (this.form.usingTemplate) {
+                        popBuilder.withHTMLText(this.form.content)
+                    } else {
+                        popBuilder.withPlainText(this.form.content)
+                    }
+                    email = popBuilder.buildEmail()
+                    this.mailer!!.sendMail(email, true).whenComplete { _, throwable ->
+                        if (throwable == null) {
+                            if (ConfigFields.EMAIL_DEBUG == true) SkriptMail.gLogger().info("Email was sent successfully!")
+                        } else {
+                            if (ConfigFields.EMAIL_DEBUG == true) SkriptMail.gLogger().error("Sending mail failed! Caused by: %s", if (throwable.cause != null) throwable.cause!!.message else throwable.message)
+                        }
+                    }
+            })
         } catch (ex: Exception) {
             if (ConfigFields.PROJECT_DEBUG == true) SkriptMail.gLogger().error("Sending mail failed! Caused by: %s", if (ex.cause != null) ex.cause!!.message else ex.message)
         }

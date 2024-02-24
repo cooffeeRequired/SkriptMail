@@ -109,7 +109,7 @@ all templates need to be a `.html`
     <p>The Registration {it::team} Team</p>
 </div>
 ```
-*What exatly mean the `{it::*}`*. The `{it::name}` and etc. its defigned pattern for a variable, lets say we wanna render any template dynamically and send it to the email. for e.g. some registration confirmation.\
+*What exatly mean the `{it::*}`*. The `{it::name}` and etc. its defined pattern for a variable, lets say we wanna render any template dynamically and send it to the email. for e.g. some registration confirmation.\
 As you can see at ***template example `main.html`*** we have two variables `{it::name}, {it::team}` this indicates that it is a variable that will be changed to a real value during template parsing \
 So result of the parsing template will be
 ```diff
