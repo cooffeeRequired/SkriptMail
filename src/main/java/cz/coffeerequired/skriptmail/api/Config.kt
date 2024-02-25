@@ -54,9 +54,14 @@ class Config(
         return plugin
     }
     private var revisionVersion: Any? = null
+    private var kotlinVersion: Any? = null
 
     fun getRevisionVersion(): Any? {
         return this.revisionVersion
+    }
+
+    fun getKotlinVersion(): Any? {
+        return this.kotlinVersion
     }
 
     private fun getExactVersion(str: String): Version {
@@ -72,22 +77,19 @@ class Config(
     private fun init() {
         val exactBukkitVersion: Version = getExactVersion(Bukkit.getVersion())
         this.serverVersion = exactBukkitVersion
-        this.supportedVersions.any { version -> version.compareTo(exactBukkitVersion) ==0 }
-//        if (this.supportedVersions.isNotEmpty() &&  this.supportedVersions.any { version -> version.compareTo(exactBukkitVersion) == 0 }) {
-//            /* */
-//        } else {
-//            throw Exception("Version cannot be accepted cause it's not allowed yes... current version: $exactBukkitVersion, supported: ${this.supportedVersions}")
-//        }
-
+        if (!exactBukkitVersion.greaterOrEquals(this.supportedVersions[0])) {
+            throw Exception("Version cannot be accepted cause it's not allowed... current version: $exactBukkitVersion, supported: ${this.supportedVersions[0]}")
+        }
         try {
             val stream: InputStream? = this.plugin.getResource("plugin.yml")
             if (stream != null) {
                 val `is` = InputStreamReader(stream)
                 val yml = YamlConfiguration.loadConfiguration(`is`)
                 this.revisionVersion = yml.get("revision-version")
+                this.kotlinVersion = yml.get("kotlin-version")
             }
         } catch (ex: java.lang.Exception) {
-            this.plugin.logger().exception(ex, "")
+           ex.printStackTrace()
         }
     }
 
@@ -106,7 +108,7 @@ class Config(
         if (libraries.isEmpty()) {
             return null
         }
-        this.plugin.logger().info("Loading %s libraries... please wait", libraries.size)
+        SkriptMail.logger().info("Loading %s libraries... please wait", libraries.size)
         val dependencies: MutableList<Dependency> = mutableListOf()
         for (library: String in libraries) {
             val art: Artifact = DefaultArtifact(library)
@@ -137,14 +139,14 @@ class Config(
                 throw AssertionError(ex)
             }
             jarFiles.add(url)
-            this.plugin.logger().info("Loaded library %s", file)
+            SkriptMail.logger().info("Loaded library %s", file)
         }
         return URLClassLoader(jarFiles.toTypedArray<URL>())
     }
 
     public fun initializeSkript(dependency: String) {
         val pm: PluginManager = this.server.pluginManager
-        val l: Logger = this.plugin.logger()
+        val l: Logger =   SkriptMail.logger()
         val pl = pm.getPlugin(dependency)
         if (pl == null) {
             l.error("Dependency [%s] weren't found. Check your /plugins folder", dependency)
@@ -158,7 +160,7 @@ class Config(
     }
 
     public fun classRegistration(self: JavaPlugin, classesPaths: String) {
-        val l: Logger = this.plugin.logger()
+        val l: Logger =  SkriptMail.logger()
         val pm: PluginManager = this.server.pluginManager
         try {
             val addon = Skript.registerAddon(self)
@@ -187,10 +189,10 @@ class Config(
         if (!f!!.exists()) this.plugin.saveResource(fileName, replace)
         if (!withoutYaml) {
             val config: FileConfiguration = f.let { YamlConfiguration.loadConfiguration(it) }
-            this.plugin.logger().info("&n$fileName&7 was loaded &asuccessfully.", sender = sender)
+            SkriptMail.logger().info("&n$fileName&7 was loaded &asuccessfully.", sender = sender)
             return listOf(config, f)
         }
-        this.plugin.logger().info("&n$fileName&7 was loaded &asuccessfully.", sender = sender)
+        SkriptMail.logger().info("&n$fileName&7 was loaded &asuccessfully.", sender = sender)
         return listOf()
     }
 
@@ -227,7 +229,7 @@ class Config(
                 if (f.isFile) { ConfigFields.TEMPLATES[f.name] = Files.readString(it) }
             }
         } catch (ex: Exception) {
-            this.plugin.logger().exception(ex, null)
+            SkriptMail.logger().exception(ex, null)
         }
     }
 
@@ -241,7 +243,7 @@ class Config(
             if (keys.isNotEmpty()) { for (key in keys) { getExactRecord(section, key)?.let { list.add(it) } } }
             ConfigFields.ACCOUNTS = list
         } catch (ex: Exception) {
-            this.plugin.logger().exception(ex, msg = null)
+            SkriptMail.logger().exception(ex, msg = null)
         }
     }
 
@@ -257,11 +259,11 @@ class Config(
                 ConfigFields.MAILBOX_FOLDERS = mailSection.getStringList("folders")
 
                 if (ConfigFields.MAILBOX_PER_REQUEST > 20) {
-                    SkriptMail.gLogger().warn("&eYou have set a value greater than 20. items for a single query to the email server! This can cause performance issues")
+                    SkriptMail.logger().warn("&eYou have set ${ConfigFields.MAILBOX_PER_REQUEST} a value greater than 20. items for a single query to the email server! This can cause performance issues")
                 }
             }
         } catch (ex: Exception) {
-            this.plugin.logger().exception(ex, msg = null)
+            SkriptMail.logger().exception(ex, msg = null)
         }
     }
 
@@ -274,7 +276,7 @@ class Config(
         metrics.addCustomChart(SimplePie(
             "skriptmail_version"
         ) { plugin.pluginMeta.version })
-        this.plugin.logger().info("%s was hooked successfully", metricsPrefix)
+        SkriptMail.logger().info("%s was hooked successfully", metricsPrefix)
     }
 
     private fun matchConfiguration() {
@@ -299,15 +301,15 @@ class Config(
                 if (hasUpdated) config.save(configFile!!)
             }
         } catch (ex: Exception) {
-            this.plugin.logger().error(ex)
+            SkriptMail.logger().error(ex)
         }
     }
 
     public fun registerCommand(self: JavaPlugin, command: String): Any? {
         try {
-            return self.getCommand(command)?.setExecutor(Commands(this.plugin.logger(), this))
+            return self.getCommand(command)?.setExecutor(Commands(SkriptMail.logger(), this))
         } catch (err: Exception) {
-            plugin.logger().error(err)
+            SkriptMail.logger().error(err)
         }
         return null
     }

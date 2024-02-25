@@ -11,7 +11,6 @@ import ch.njol.skript.lang.SkriptParser
 import ch.njol.skript.lang.util.SimpleExpression
 import ch.njol.util.Kleenean
 import cz.coffeerequired.skriptmail.SkriptMail
-import cz.coffeerequired.skriptmail.api.email.EmailInbox
 import cz.coffeerequired.skriptmail.api.email.EmailService
 import org.bukkit.event.Event
 
@@ -26,6 +25,7 @@ class InboxEmails(val subject: String, val content: String) {
 @Since("1.0")
 @Examples("""
      set {_mails::*} to last 2 emails of service "test" 
+     set {_mail} to first email of service "test"
 """)
 class ExprInbox : SimpleExpression<InboxEmails>() {
 
@@ -47,8 +47,7 @@ class ExprInbox : SimpleExpression<InboxEmails>() {
     override fun get(event: Event?): Array<InboxEmails?> {
         val id = exprServiceId.getSingle(event)
         val inbox = id?.let { EmailService.tryGetInbox(it) }
-        println(inbox)
-        if (inbox == null) { SkriptMail.gLogger().warn("&cThe service or mailbox of the given id $id weren't initialized yet."); return arrayOf() }
+        if (inbox == null) { SkriptMail.logger().warn("&cThe service or mailbox of the given id $id weren't initialized yet."); return arrayOf() }
         return if (multiple) {
             val count = exprNum.getSingle(event)
             run {
@@ -63,15 +62,15 @@ class ExprInbox : SimpleExpression<InboxEmails>() {
                 return messages.toTypedArray()
             }
         } else {
-            val messages = inbox.getEmails(0..1, if(isLast) 2 else 1).map { str ->
-                val parts = str?.split("c:")
-                if (parts?.size!! > 1) {
-                    val subject = parts[0].slice(8..<parts[0].length)
-                    val content = parts[1]
-                    InboxEmails(subject, content)
-                } else { null}
+            var result: InboxEmails? = null
+            val message = if(isLast) inbox.getLastEmail() else inbox.getFirstEmail()
+            val parts = message?.split("c:")
+            if (parts?.size!! > 1) {
+                val subject = parts[0].slice(8..<parts[0].length)
+                val content = parts[1]
+                result = InboxEmails(subject, content)
             }
-            messages.toTypedArray()
+            arrayOf(result)
         }
     }
 

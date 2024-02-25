@@ -1,13 +1,15 @@
 name: SkriptMail
 version: '${version}'
 revision-version: "2001f"
+kotlin-version: '${kotlin_version}'
 main: cz.coffeerequired.skriptmail.SkriptMail
 api-version: '1.20'
 prefix: skript-mail
 depend: [ Skript ]
 authors: [ CoffeeRequired ]
 libraries:
-  - org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0
+  - org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlin_version}
+  - org.jetbrains.kotlinx:kotlinx-coroutines-core:${kotlin_coroutines}
   - com.sun.activation:jakarta.activation:2.0.1
   - com.sun.mail:jakarta.mail:2.0.1
   - jakarta.xml.bind:jakarta.xml.bind-api:4.0.1

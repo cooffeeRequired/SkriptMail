@@ -20,6 +20,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 import kotlin.collections.set
+import kotlin.time.measureTime
 
 class EmailService(val id: String, @WillUsed val session: Session, private val store: Store) {
     companion object {
@@ -30,14 +31,14 @@ class EmailService(val id: String, @WillUsed val session: Session, private val s
         @WillUsed
         fun tryRegisterNewService(account: Account, id: String = UUID.randomUUID().toString()) {
             try {
-                if (registeredServices[id] != null) return SkriptMail.gLogger().warn("&cService for id $id is already registered!")
+                if (registeredServices[id] != null) return SkriptMail.logger().warn("&cService for id $id is already registered!")
                 val session = createSession()
                 val service = EmailService(id, session, connectStore(account, session))
                 registeredServices[id] = service
-                SkriptMail.gLogger().info("Registered new email service for id &f&n$id")
+                SkriptMail.logger().info("Registered new email service for id &f&n$id")
                 tryRegisterAnListener(service, id)
             } catch (ex: Exception) {
-                SkriptMail.gLogger().exception(ex, "Registration of new Service")
+                SkriptMail.logger().exception(ex, "Registration of new Service")
             }
         }
 
@@ -45,25 +46,28 @@ class EmailService(val id: String, @WillUsed val session: Session, private val s
             val folder = service.getFolder("INBOX") ?: throw IllegalArgumentException("INBOX folder not found")
             folder.open(Folder.READ_ONLY)
             val event = BukkitEmailMessageEvent(id, true)
+            val inbox = tryRegisterMailBox(folder, id)
             folder.addMessageCountListener(object : MessageCountAdapter() {
                 override fun messagesAdded(e: MessageCountEvent?) {
-                    Bukkit.getAsyncScheduler().runNow(SkriptMail.instance()) {
-                        val mess = e!!.messages
-                        for (m in mess) {
-                            event.callEventWithData(
-                                m.subject,
-                                m.receivedDate,
-                                m.content,
-                                m.allRecipients,
-                                m.from
-                            )
+                    runBlocking {
+                        launch {
+                            val mess = e!!.messages
+                            for (m in mess) {
+                                inbox.addMessage("Subject: ${m.subject} c:${if(m.contentType.contains("TEXT")) m.content else "Unsupported body of email!"}")
+                                event.callEventWithData(
+                                    m.subject,
+                                    m.receivedDate,
+                                    if(m.contentType.contains("TEXT")) m.content else "Unsupported body of email!",
+                                    m.allRecipients,
+                                    m.from
+                                )
+                            }
                         }
                     }
                 }
             })
             val runner = Bukkit.getAsyncScheduler().runAtFixedRate(SkriptMail.instance(), { folder.messageCount }, 0, 1, TimeUnit.SECONDS)
             registeredListeners[id] = Pair(folder, runner)
-            tryRegisterMailBox(folder, id)
         }
 
         private fun createSession(): Session {
@@ -118,10 +122,11 @@ class EmailService(val id: String, @WillUsed val session: Session, private val s
         private fun fetchMessagesAndUpdateInbox(folder: Folder, inbox: EmailInbox) {
             val max = folder.messageCount
             val perRequest = ConfigFields.MAILBOX_PER_REQUEST.toInt()
+            val left = if (max - perRequest < 0) 0 else max-perRequest
 
             runBlocking {
                 val emailProcessingJobs = mutableListOf<Deferred<Boolean>>()
-                val messages: Array<Message> = folder.messages.sliceArray(max - perRequest..<max)
+                val messages: Array<Message> = folder.messages.sliceArray(left..<max)
                 val parsedMessages: MutableList<String> = mutableListOf()
                 for (email in messages) {
                     val job = async {
@@ -129,8 +134,8 @@ class EmailService(val id: String, @WillUsed val session: Session, private val s
                         val contentType = mimeMessage.contentType
                         val subject = mimeMessage.subject
                         val content = when(contentType.contains("TEXT")) {
-                            true -> "Subject: $subject c:${mimeMessage.contentType}"
-                            else -> "Unsupported body of email!"
+                            true -> "Subject: $subject c:${mimeMessage.content}"
+                            else -> "Subject: $subject c:Unsupported body of email!"
                         }
                         parsedMessages.add(content)
                     }
@@ -142,21 +147,24 @@ class EmailService(val id: String, @WillUsed val session: Session, private val s
         }
 
 
-        private fun tryRegisterMailBox(folder: Folder, id: String) {
+        private fun tryRegisterMailBox(folder: Folder, id: String): EmailInbox {
+            val inbox = EmailInbox(id, null)
+            inbox.openInbox()
             runBlocking {
                 launch {
-                    val inbox = EmailInbox(id, null)
                     val runnable = Runnable {
                         if (folder.hasNewMessages()) {
-                            fetchMessagesAndUpdateInbox(folder, inbox)
+                            val time = measureTime { fetchMessagesAndUpdateInbox(folder, inbox) }
+                            if (ConfigFields.EMAIL_DEBUG == true) SkriptMail.logger().info("Emails was sync in &e$time")
                         }
                     }
                     inbox.applyTask(runnable)
-                    fetchMessagesAndUpdateInbox(folder, inbox)
-                    inbox.openInbox()
                     registeredMailbox[id] = inbox
+                    val time = measureTime { fetchMessagesAndUpdateInbox(folder, inbox) }
+                    if (ConfigFields.EMAIL_DEBUG == true) SkriptMail.logger().info("Emails was sync in &e$time")
                 }
             }
+            return inbox
         }
 
 
@@ -202,6 +210,10 @@ class EmailInbox(private val id: String, private var task: Runnable?) {
         }
     }
 
+    fun addMessage(message: String?) {
+        this.messages.add(message)
+    }
+
     override fun toString(): String {
         return "EmailInbox{messages=${messages.size}, id=$id, task=$task, scheduler: $scheduler, isClosed: $isClosed}"
     }
@@ -211,10 +223,18 @@ class EmailInbox(private val id: String, private var task: Runnable?) {
     }
 
     fun getEmails(range: IntRange, mode: Int): Array<String?> {
+        if (this.messages.isEmpty()) return arrayOf()
         return when (mode) {
             2 -> messages.subList(range.first, range.last).toTypedArray()
             1 -> messages.subList((messages.size - range.last), (messages.size - range.first)).toTypedArray()
             else -> arrayOf()
         }
+    }
+
+    fun getFirstEmail(): String? {
+        return messages.last()
+    }
+    fun getLastEmail(): String? {
+        return this.messages.first()
     }
 }

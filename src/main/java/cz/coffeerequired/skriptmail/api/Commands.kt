@@ -69,15 +69,16 @@ class Commands(private val logger: Logger, private val config: Config) : TabExec
 
     private fun printAbout(sender: CommandSender?) {
         val plm = SkriptMail.instance().pluginMeta
-        logger.info("%s revision version: ${config.getRevisionVersion()}".format(logger.prefix()), sender = sender)
+        logger.info("kotlin version: ${config.getKotlinVersion()}", sender = sender)
+        logger.info("revision version: ${config.getRevisionVersion()}", sender = sender)
         logger.info("Description: &f${printableDescription(plm.description)}", sender = sender)
-        logger.info("${logger.prefix()} version: ${plm.version}",  sender = sender)
+        logger.info("version: ${plm.version}",  sender = sender)
         logger.info("API-version: ${plm.apiVersion}", sender = sender)
         logger.info("Website: ${plm.website}", sender = sender)
         if (sender is Player) {
             logger.infoClickable("", sender = sender, clickable = "https://www.github.com/coffeeRequired/SkripMail")
         } else {
-            logger.info("Github: &r:&nhttps://www.github.com/coffeeRequired/SkripMail")
+            logger.info("Github: &f&nhttps://www.github.com/coffeeRequired/SkripMail")
         }
         logger.emptyLine(sender)
     }

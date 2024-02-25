@@ -1,6 +1,5 @@
 package cz.coffeerequired.skriptmail.api.email
 
-import cz.coffeerequired.skriptmail.SkriptMail
 import cz.coffeerequired.skriptmail.api.WillUsed
 
 class Email(
@@ -14,15 +13,6 @@ class Email(
     }
 
     var hasTemplate: Boolean = false
-
-    fun sContent(template: String) {
-        if (this.content == null && !this.hasTemplate) {
-            this.content = template
-            this.hasTemplate = !this.hasTemplate
-        } else {
-            SkriptMail.gLogger().warn("Email have already sett an template")
-        }
-    }
 
     operator fun component1(): Account { return this.field }
     operator fun component2(): MutableList<String>? { return this.recipient }

@@ -1,3 +1,5 @@
+var kotlin_coroutines = "1.8.0"
+
 buildscript {
     ext.kotlin_version = "1.9.22"
     repositories {mavenCentral()}
@@ -38,38 +40,33 @@ build {
         }
     }
 }
-dependencies {
-    /* Annotation */ implementation("org.eclipse.jdt:org.eclipse.jdt.annotation:2.0.0")
-    /* Paper */ implementation(group: 'io.papermc.paper', name: 'paper-api', version: '1.20.4-R0.1-SNAPSHOT')
-    /* Skript */ implementation(group: 'com.github.SkriptLang', name: 'Skript', version: '2.8.2') { transitive = false}
-    implementation group: 'com.sun.activation', name: 'jakarta.activation', version: '2.0.1'
-    implementation group: 'com.sun.mail', name: 'jakarta.mail', version: '2.0.1'
-    implementation group: 'jakarta.xml.bind', name: 'jakarta.xml.bind-api', version: '4.0.1'
-    implementation group: 'com.sanctionco.jmail', name: 'jmail', version: '1.6.2'
-    implementation group: 'com.pivovarit', name: 'throwing-function', version: '1.5.1'
-    implementation group: 'org.eclipse.angus', name: 'angus-mail', version: '2.0.2'
-    implementation("org.simplejavamail:simple-java-mail:8.6.3")
-    implementation("org.simplejavamail:core-module:8.6.3")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0")
 
+
+dependencies {
+    /* Annotation */ compileOnly("org.eclipse.jdt:org.eclipse.jdt.annotation:2.0.0")
+    /* Paper */ compileOnly(group: 'io.papermc.paper', name: 'paper-api', version: '1.20.4-R0.1-SNAPSHOT')
+
+    /* Skript */ compileOnly(group: 'com.github.SkriptLang', name: 'Skript', version: '2.8.2') { transitive = false}
+    compileOnly group: 'com.sun.activation', name: 'jakarta.activation', version: '2.0.1'
+    compileOnly group: 'com.sun.mail', name: 'jakarta.mail', version: '2.0.1'
+    compileOnly group: 'jakarta.xml.bind', name: 'jakarta.xml.bind-api', version: '4.0.1'
+    compileOnly group: 'com.sanctionco.jmail', name: 'jmail', version: '1.6.2'
+    compileOnly group: 'com.pivovarit', name: 'throwing-function', version: '1.5.1'
+    compileOnly group: 'org.eclipse.angus', name: 'angus-mail', version: '2.0.2'
+    compileOnly("org.simplejavamail:simple-java-mail:8.6.3")
+    compileOnly("org.simplejavamail:core-module:8.6.3")
+    compileOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlin_coroutines")
 }
+
+
 shadowJar {
+    minimize()
     dependencies {
-        //include dependency("org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version")
-        include dependency("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0")
-//        include dependency(group: 'com.sun.activation', name: 'jakarta.activation', version: '2.0.1')
-//        include dependency(group: 'com.sun.mail', name: 'jakarta.mail', version: '2.0.1')
-//        include dependency(group: 'jakarta.xml.bind', name: 'jakarta.xml.bind-api', version: '4.0.1')
-//        include dependency(group: 'com.sanctionco.jmail', name: 'jmail', version: '1.6.2')
-//        include dependency(group: 'com.pivovarit', name: 'throwing-function', version: '1.5.1')
-//        include dependency(group: 'org.eclipse.angus', name: 'angus-mail', version: '2.0.2')
-//        include dependency("org.simplejavamail:simple-java-mail:8.6.3")
-//        include dependency("org.simplejavamail:core-module:8.6.3")
+        exclude dependency("org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version")
     }
 
-    //relocate 'kotlinx', "cz.coffeerequired.skriptmail.kotlinx"
-    //relocate 'kotlin', 'cz.coffeerequired.skriptmail.kotlin'
-    minimize()
+//    relocate('kotlin', 'cz.coffeerequired.api.kotlin')
+//    relocate('kotlinx', 'cz.coffeerequired.api.kotlinx')
 }.finalizedBy(copyJar)
 
 def targetJavaVersion = 17
@@ -89,7 +86,7 @@ tasks.withType(JavaCompile).configureEach {
 }
 
 processResources {
-    def props = [version: version]
+    def props = [version: version, kotlin_coroutines: kotlin_coroutines, kotlin_version: kotlin_version]
     inputs.properties props
     filteringCharset 'UTF-8'
     filesMatching(['plugin.yml', 'lang/default.lang']) {

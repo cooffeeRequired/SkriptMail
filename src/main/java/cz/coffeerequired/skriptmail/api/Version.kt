@@ -23,6 +23,17 @@ class Version(
         }
     }
 
+    // 1.20.4
+    // 1.16.2
+
+    fun greaterOrEquals(v: Version): Boolean {
+        val (major, minor, patch) = this
+        val (major1, minor1, patch1) = v
+        val e1 = "$major$minor$patch".toInt()
+        val e2 = "$major1$minor1$patch1".toInt()
+        return e1 >= e2
+    }
+
     override fun compareTo(other: Version): Int {
         val majorDiff = this.major.compareTo(other.major)
         if (majorDiff != 0) {
@@ -41,7 +52,7 @@ class Version(
         return "Version{major: ${this.major}, minor: ${this.minor}, patch: ${this.patch}}"
     }
 
-    public fun toString(d: Int): String {
+    fun toString(d: Int): String {
         return when (d) {
             0 -> "major: ${this.major}, minor: ${this.minor}, patch: ${this.patch}"
             1 -> "${this.major}.${this.minor}.${this.patch}"
@@ -49,7 +60,4 @@ class Version(
         }
     }
 
-    public fun getSanitized(): Long {
-        return this.toString(1).replace(".", "").toLong()
-    }
 }

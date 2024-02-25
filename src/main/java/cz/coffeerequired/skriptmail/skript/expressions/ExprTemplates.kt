@@ -86,7 +86,7 @@ class ExprTemplates : SimpleExpression<String>() {
                                     return arrayOf(content)
                                 }
                             } catch (ex: Exception) {
-                                SkriptMail.gLogger().exception(ex, "Variable &n&e'{%s}'&r doesn't returns any usable value", variableName)
+                                SkriptMail.logger().exception(ex, "Variable &n&e'{%s}'&r doesn't returns any usable value", variableName)
                             }
                         }
                         else -> {
@@ -136,7 +136,7 @@ class ExprTemplates : SimpleExpression<String>() {
             if (withData) {
                 if (expr1 is Variable<*>) {
                     if (expr1.isSingle) {
-                        SkriptMail.gLogger().errorWithNode("Variable need to be a list!", node = parser.node)
+                        SkriptMail.logger().errorWithNode("Variable need to be a list!", node = parser.node)
                         return false
                     }
                     templateData = expr1

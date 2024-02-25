@@ -328,7 +328,7 @@ class PropsEmailTemplate : PropertyExpression<Email, String>() {
                 for (d in delta!!.iterator()) {
                     o?.content = d as String
                     if (!isTemplate && o!!.hasTemplate) {
-                        SkriptMail.gLogger().warn("Template is set! You can't change the body of email like that, use 'reset body of %email%'")
+                        SkriptMail.logger().warn("Template is set! You can't change the body of email like that, use 'reset body of %email%'")
                         return
                     }
                     if (isTemplate) o!!.hasTemplate = true

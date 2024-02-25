@@ -10,8 +10,6 @@ import org.simplejavamail.api.mailer.Mailer
 import org.simplejavamail.api.mailer.config.TransportStrategy
 import org.simplejavamail.email.EmailBuilder
 import org.simplejavamail.mailer.MailerBuilder
-import kotlin.time.TimeSource
-import kotlin.time.measureTime
 
 class EmailController(
     private val account: Account,
@@ -40,9 +38,9 @@ class EmailController(
                         .buildMailer()
                 }
             }
-            EmailFieldType.POP3 -> { SkriptMail.gLogger().warn("POP3 service aren't supported yet!") }
-            EmailFieldType.IMAP -> { SkriptMail.gLogger().warn("IMAP service aren't supported yet!") }
-            else -> { SkriptMail.gLogger().exception(IllegalStateException("The service %s aren't supported".format(type)), msg = "The service %s aren't supported".format(type) ) }
+            EmailFieldType.POP3 -> { SkriptMail.logger().warn("POP3 service aren't supported yet!") }
+            EmailFieldType.IMAP -> { SkriptMail.logger().warn("IMAP service aren't supported yet!") }
+            else -> { SkriptMail.logger().exception(IllegalStateException("The service %s aren't supported".format(type)), msg = "The service %s aren't supported".format(type) ) }
         }
     }
 
@@ -77,19 +75,19 @@ class EmailController(
                     }
                     email = popBuilder.buildEmail()
 
-                if (ConfigFields.EMAIL_DEBUG == true) SkriptMail.gLogger().info("Email was present successfully")
+                if (ConfigFields.EMAIL_DEBUG == true) SkriptMail.logger().info("Email was present successfully")
 
                 this.mailer!!.sendMail(email, true)
                     .whenComplete { _, throwable ->
                     if (throwable == null) {
-                        if (ConfigFields.EMAIL_DEBUG == true) SkriptMail.gLogger().info("Email was sent successfully!")
+                        if (ConfigFields.EMAIL_DEBUG == true) SkriptMail.logger().info("Email was sent successfully!")
                     } else {
-                        if (ConfigFields.EMAIL_DEBUG == true) SkriptMail.gLogger().error("Sending mail failed! Caused by: %s", if (throwable.cause != null) throwable.cause!!.message else throwable.message)
+                        if (ConfigFields.EMAIL_DEBUG == true) SkriptMail.logger().error("Sending mail failed! Caused by: %s", if (throwable.cause != null) throwable.cause!!.message else throwable.message)
                     }
                 }
             })
         } catch (ex: Exception) {
-            if (ConfigFields.PROJECT_DEBUG == true) SkriptMail.gLogger().error("Sending mail failed! Caused by: %s", if (ex.cause != null) ex.cause!!.message else ex.message)
+            if (ConfigFields.PROJECT_DEBUG == true) SkriptMail.logger().error("Sending mail failed! Caused by: %s", if (ex.cause != null) ex.cause!!.message else ex.message)
         }
     }
 

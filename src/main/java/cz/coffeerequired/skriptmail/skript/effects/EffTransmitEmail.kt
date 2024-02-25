@@ -11,13 +11,10 @@ import ch.njol.skript.lang.SkriptParser
 import ch.njol.util.Kleenean
 import cz.coffeerequired.skriptmail.SkriptMail
 import cz.coffeerequired.skriptmail.api.Config
-import cz.coffeerequired.skriptmail.api.email.Account
 import cz.coffeerequired.skriptmail.api.email.Email
 import cz.coffeerequired.skriptmail.api.email.EmailController
 import org.bukkit.event.Event
 import java.util.*
-import kotlin.time.TimeSource
-import kotlin.time.measureTime
 
 @Name("Send Email")
 @Description("That will send the email to the recipients in asynchronous mode..")
@@ -66,7 +63,7 @@ class EffTransmitEmail: Effect() {
                 controller.send()
                 Config.executedEmails[Date()] = email
             } catch (ex: Exception) {
-                SkriptMail.gLogger().exception(ex, ex.cause)
+                SkriptMail.logger().exception(ex, ex.cause)
             }
         }
 

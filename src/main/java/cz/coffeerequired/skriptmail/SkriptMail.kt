@@ -12,18 +12,11 @@ class SkriptMail : JavaPlugin() {
     private lateinit var config: Config
     private lateinit var logger: Logger
 
-    fun logger(): Logger {
-        return this.logger
-    }
 
     override fun onLoad() {
-        this.config = Config(this, Bukkit.getServer(), listOf(
-            Version("1.8"),
-            Version(1, 16, 2),
-            Version(1, 20, 4)
-        ))
+        this.config = Config(this, Bukkit.getServer(), listOf(Version(1, 16, 2)))
         this.logger = Logger(this.config.getServerVersion())
-        Log = this.logger()
+        Log = this.logger
         this.logger.setPrefix("${"skript-mail".gradient("#80F638", "#38F6B8")}&7")
         super.onLoad()
     }
@@ -40,12 +33,13 @@ class SkriptMail : JavaPlugin() {
     }
 
     override fun onDisable() {
+        this.logger.log("Plugin was disabled %s", "&#52F638successfully.", sender = null)
     }
 
     companion object {
         lateinit var Log: Logger
         private lateinit var instance: SkriptMail
-        fun gLogger(): Logger { return Log }
+        fun logger(): Logger { return Log }
         fun instance(): SkriptMail { return this.instance }
     }
 }
