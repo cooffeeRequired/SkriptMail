@@ -11,7 +11,6 @@ import org.bukkit.command.ConsoleCommandSender
 class Logger(private val version: Version) {
     private var prefix: String = ""
     fun setPrefix(prefix: String) { this.prefix = prefix }
-    fun prefix(): String { return this.prefix }
 
     @Suppress("DEPRECATION")
     private fun messageHandler(isSupported: Boolean, message: String, vararg arguments: Any?, sender: CommandSender, level: Int? = 0, withoutPrefix: Boolean? = false, clickable: Any? = false) {
