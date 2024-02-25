@@ -6,8 +6,8 @@ mailbox:
       - something
     filter: # regex
     refresh-rate: 1000
-    rate-unit: SECONDS # MILIS, SECONDS, MINUTES, HOURS
-    max-fetch-per-request: 100 # default 100
+    rate-unit: SECONDS # MILLISECONDS, SECONDS, MINUTES, HOURS
+    max-fetch-per-request: 20 # default 20
 accounts:
   example:
     address: example@example.com

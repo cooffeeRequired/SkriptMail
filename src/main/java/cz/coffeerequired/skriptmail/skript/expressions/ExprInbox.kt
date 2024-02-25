@@ -11,8 +11,8 @@ import ch.njol.skript.lang.SkriptParser
 import ch.njol.skript.lang.util.SimpleExpression
 import ch.njol.util.Kleenean
 import cz.coffeerequired.skriptmail.SkriptMail
+import cz.coffeerequired.skriptmail.api.email.EmailInbox
 import cz.coffeerequired.skriptmail.api.email.EmailService
-import jakarta.mail.Message
 import org.bukkit.event.Event
 
 class InboxEmails(val subject: String, val content: String) {
@@ -32,7 +32,8 @@ class ExprInbox : SimpleExpression<InboxEmails>() {
     companion object{
         init {
             Skript.registerExpression(ExprInbox::class.java, InboxEmails::class.java, ExpressionType.SIMPLE,
-                "(1:last|2:first) [%-number%] message[s] of service %string%"
+                "(1:last|2:first) message of service %string%",
+                "(1:last|2:first) %number% messages of service %string%"
             )
         }
     }
@@ -44,34 +45,33 @@ class ExprInbox : SimpleExpression<InboxEmails>() {
 
 
     override fun get(event: Event?): Array<InboxEmails?> {
-        var messages: List<Message>?
+        val id = exprServiceId.getSingle(event)
+        val inbox = id?.let { EmailService.tryGetInbox(it) }
+        println(inbox)
+        if (inbox == null) { SkriptMail.gLogger().warn("&cThe service or mailbox of the given id $id weren't initialized yet."); return arrayOf() }
         return if (multiple) {
             val count = exprNum.getSingle(event)
-            val id = exprServiceId.getSingle(event)
-            messages = id?.let { EmailService.getInbox(it) }
-            if (messages == null) {
-                SkriptMail.gLogger().warn("&cThe are now opened inbox for service '&f$id&c'")
-                return arrayOf()
+            run {
+                val messages = inbox.getEmails(0..(count?.toInt() ?: 10), if(isLast) 2 else 1).map { str ->
+                    val parts = str?.split("c:")
+                    if (parts?.size!! > 1) {
+                        val subject = parts[0].slice(8..<parts[0].length)
+                        val content = parts[1]
+                        InboxEmails(subject, content)
+                    } else { null }
+                }
+                return messages.toTypedArray()
             }
-            val size = messages.size
-            //println("1: ${size-count!!.toInt()}, 2: $size")
-
-            messages = when (isLast) {
-                true -> messages.slice(size-count!!.toInt()..<size)
-                else -> messages.slice(0 ..count!!.toInt())
-            }
-            messages.map { InboxEmails(it.subject, it.content.toString()) }.toTypedArray()
         } else {
-            val id = exprServiceId.getSingle(event)
-            messages = id?.let { EmailService.getInbox(it) }
-            if (messages == null) {
-                SkriptMail.gLogger().warn("&cThe are now opened inbox for service '&f$id&c'")
-                return arrayOf()
+            val messages = inbox.getEmails(0..1, if(isLast) 2 else 1).map { str ->
+                val parts = str?.split("c:")
+                if (parts?.size!! > 1) {
+                    val subject = parts[0].slice(8..<parts[0].length)
+                    val content = parts[1]
+                    InboxEmails(subject, content)
+                } else { null}
             }
-            arrayOf(when(isLast) {
-                true -> messages.last().let { InboxEmails(it.subject, it.content.toString()) }
-                else -> messages.first().let { InboxEmails(it.subject, it.content.toString()) }
-            })
+            messages.toTypedArray()
         }
     }
 
@@ -84,7 +84,7 @@ class ExprInbox : SimpleExpression<InboxEmails>() {
     }
 
     override fun toString(event: Event?, debug: Boolean): String {
-        return "${if(isLast) "last" else "first" } ${if(exprNum != null) "${exprNum.toString(event, debug)} messages" else "message"} of service ${exprServiceId.toString(event, debug)}"
+        return "${if(isLast) "last" else "first" } ${"${exprNum.toString(event, debug)} messages"} of service ${exprServiceId.toString(event, debug)}"
     }
 
     @Suppress("unchecked_cast")
@@ -95,12 +95,13 @@ class ExprInbox : SimpleExpression<InboxEmails>() {
         parseResult: SkriptParser.ParseResult?
     ): Boolean {
         isLast = parseResult!!.mark == 1
-        if (expressions!!.size > 1) {
-            this.exprNum = expressions[0] as Expression<Long>
+        multiple = matchedPattern == 1
+
+        if (multiple) {
+            this.exprNum = expressions?.get(0) as Expression<Long>
             this.exprServiceId = expressions[1] as Expression<String>
-            this.multiple = true
         } else {
-            this.exprServiceId = expressions[0] as Expression<String>
+            this.exprServiceId = expressions?.get(0) as Expression<String>
         }
         return true
     }

@@ -11,10 +11,13 @@ import ch.njol.skript.lang.SkriptParser
 import ch.njol.util.Kleenean
 import cz.coffeerequired.skriptmail.SkriptMail
 import cz.coffeerequired.skriptmail.api.Config
+import cz.coffeerequired.skriptmail.api.email.Account
 import cz.coffeerequired.skriptmail.api.email.Email
 import cz.coffeerequired.skriptmail.api.email.EmailController
 import org.bukkit.event.Event
 import java.util.*
+import kotlin.time.TimeSource
+import kotlin.time.measureTime
 
 @Name("Send Email")
 @Description("That will send the email to the recipients in asynchronous mode..")
@@ -41,46 +44,32 @@ class EffTransmitEmail: Effect() {
         val email = this.emailExpr.getSingle(event)
         if (email != null) {
             val (field, recipient, subject, content) = email
-            try {
-                val controller: EmailController
-                val form : EmailController.Companion.Form = EmailController.Companion.Form.formBuilder()
-                    .content(content)
-                    .recipient(recipient)
-                    .subject(subject)
-                    .build()
-                form.usingTemplate = email.hasTemplate
+            val form: EmailController.Companion.Form = EmailController.Companion.Form.formBuilder()
+                .content(content)
+                .recipient(recipient)
+                .subject(subject)
+                .build()
+            form.usingTemplate = email.hasTemplate
+            val controller: EmailController
 
-                if (line == 1) {
-                    if (email.field.auth == true) {
-                        val sU = this.emailAuthUsername.getSingle(event)
-                        val sP = this.emailAuthPassword.getSingle(event)
-                        if (sP != null && sU != null) {
-                            controller = EmailController(field, sU, sP)
-                            controller.setForm(form)
-                            controller.send()
-                            Config.executedEmails[Date()] = email
-                        } else {
-                            SkriptMail.gLogger().warn("You are using a secured connection, do you forgot on credentials, expected &nusername&7 and &npassword&7 but got only %s %s",
-                                if(sU != null) "username" else "",
-                                if(sP != null) ",password" else ""
-                            )
-                        }
-                    } else {
-                        controller = EmailController(email.field, null, null)
-                        controller.setForm(form)
-                        controller.send()
-                        Config.executedEmails[Date()] = email
-                    }
-                } else {
-                    controller = EmailController(email.field, email.field.authUsername, email.field.authPassword)
-                    controller.setForm(form)
-                    controller.send()
-                    Config.executedEmails[Date()] = email
-                }
+            var authUsername: String? = null
+            var authPassword: String? = null
+
+            if (line == 1 && field.auth == true) {
+                authUsername = this.emailAuthUsername.getSingle(event)
+                authPassword = this.emailAuthPassword.getSingle(event)
+            }
+
+            try {
+                controller = EmailController(field, authUsername, authPassword)
+                controller.setForm(form)
+                controller.send()
+                Config.executedEmails[Date()] = email
             } catch (ex: Exception) {
                 SkriptMail.gLogger().exception(ex, ex.cause)
             }
         }
+
     }
     override fun toString(event: Event?, debug: Boolean): String {
         return if (line == 0) {

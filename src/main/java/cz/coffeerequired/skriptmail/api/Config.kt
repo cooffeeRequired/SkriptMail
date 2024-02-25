@@ -34,6 +34,7 @@ import java.net.URL
 import java.net.URLClassLoader
 import java.nio.file.Files
 import java.util.*
+import java.util.concurrent.TimeUnit
 
 @Suppress("unused", "UNCHECKED_CAST", "RedundantVisibilityModifier")
 class Config(
@@ -72,11 +73,11 @@ class Config(
         val exactBukkitVersion: Version = getExactVersion(Bukkit.getVersion())
         this.serverVersion = exactBukkitVersion
         this.supportedVersions.any { version -> version.compareTo(exactBukkitVersion) ==0 }
-        if (this.supportedVersions.isNotEmpty() &&  this.supportedVersions.any { version -> version.compareTo(exactBukkitVersion) == 0 }) {
-            /* */
-        } else {
-            throw Exception("Version cannot be accepted cause it's not allowed yes... current version: $exactBukkitVersion, supported: ${this.supportedVersions}")
-        }
+//        if (this.supportedVersions.isNotEmpty() &&  this.supportedVersions.any { version -> version.compareTo(exactBukkitVersion) == 0 }) {
+//            /* */
+//        } else {
+//            throw Exception("Version cannot be accepted cause it's not allowed yes... current version: $exactBukkitVersion, supported: ${this.supportedVersions}")
+//        }
 
         try {
             val stream: InputStream? = this.plugin.getResource("plugin.yml")
@@ -252,8 +253,12 @@ class Config(
                 ConfigFields.MAILBOX_FILTER = mailSection.getString("filter")?.let { Regex(it) }
                 ConfigFields.MAILBOX_REFRESH_RATE = mailSection.getLong("refresh-rate")
                 ConfigFields.MAILBOX_PER_REQUEST = mailSection.getLong("max-fetch-per-request")
-                ConfigFields.MAILBOX_RATE = mailSection.getString("rate-unit")?.let { MailboxRateUnit.valueOf(it.uppercase())}!!
+                ConfigFields.MAILBOX_RATE = mailSection.getString("rate-unit")?.let { TimeUnit.valueOf(it.uppercase())}!!
                 ConfigFields.MAILBOX_FOLDERS = mailSection.getStringList("folders")
+
+                if (ConfigFields.MAILBOX_PER_REQUEST > 20) {
+                    SkriptMail.gLogger().warn("&eYou have set a value greater than 20. items for a single query to the email server! This can cause performance issues")
+                }
             }
         } catch (ex: Exception) {
             this.plugin.logger().exception(ex, msg = null)

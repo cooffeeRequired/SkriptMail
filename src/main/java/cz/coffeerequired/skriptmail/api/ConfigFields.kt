@@ -1,6 +1,7 @@
 package cz.coffeerequired.skriptmail.api
 
 import cz.coffeerequired.skriptmail.api.email.Account
+import java.util.concurrent.TimeUnit
 
 
 enum class EmailFieldType(val value: String) {
@@ -8,14 +9,6 @@ enum class EmailFieldType(val value: String) {
     IMAP("imap"),
     POP3("pop3");
 }
-
-enum class MailboxRateUnit(val value: String) {
-    MILIS("milliseconds"),
-    SECONDS("seconds"),
-    MINUTES("minutes"),
-    HOURS("hours")
-}
-
 
 class ConfigFields {
     companion object {
@@ -27,7 +20,7 @@ class ConfigFields {
         var MAILBOX_FOLDERS: List<String> = listOf()
         var MAILBOX_FILTER: Regex? = null
         var MAILBOX_REFRESH_RATE: Long = 1000
-        var MAILBOX_RATE: MailboxRateUnit = MailboxRateUnit.MINUTES
+        var MAILBOX_RATE: TimeUnit = TimeUnit.MINUTES
         var MAILBOX_PER_REQUEST: Long = 100
     }
 }

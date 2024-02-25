@@ -40,10 +40,12 @@ class EffRegisterService : AsyncEffect() {
                     if (ConfigFields.ACCOUNTS.isEmpty()) { SkriptMail.gLogger().warn("&cYou did not have set any account at all.");return }
                     when (val foundAcc = tryGetById(acc)) {
                         null -> SkriptMail.gLogger().warn("&cAccount for id '$acc' will not found!")
-                        else -> EmailService.tryRegisterNewService(id, foundAcc)
+                        else -> id?.let { EmailService.tryRegisterNewService(foundAcc, it) }
                     }
                 }
-                is Account -> { EmailService.tryRegisterNewService(id, acc) }
+                is Account -> {
+                    if (id != null) { EmailService.tryRegisterNewService(acc, id) }
+                }
             }
         }
     }
@@ -79,7 +81,7 @@ class EffUnregisterService : AsyncEffect() {
     override fun execute(event: Event?) {
         val id = exprID.getSingle(event)
         if (id == null) {SkriptMail.gLogger().warn("&cId Cannot be null"); return}
-        EmailService.tryUnregisterService(id)
+        EmailService.unregisterService(id)
     }
 
     override fun toString(event: Event?, debug: Boolean): String {

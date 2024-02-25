@@ -10,6 +10,8 @@ import org.simplejavamail.api.mailer.Mailer
 import org.simplejavamail.api.mailer.config.TransportStrategy
 import org.simplejavamail.email.EmailBuilder
 import org.simplejavamail.mailer.MailerBuilder
+import kotlin.time.TimeSource
+import kotlin.time.measureTime
 
 class EmailController(
     private val account: Account,
@@ -74,13 +76,17 @@ class EmailController(
                         popBuilder.withPlainText(this.form.content)
                     }
                     email = popBuilder.buildEmail()
-                    this.mailer!!.sendMail(email, true).whenComplete { _, throwable ->
-                        if (throwable == null) {
-                            if (ConfigFields.EMAIL_DEBUG == true) SkriptMail.gLogger().info("Email was sent successfully!")
-                        } else {
-                            if (ConfigFields.EMAIL_DEBUG == true) SkriptMail.gLogger().error("Sending mail failed! Caused by: %s", if (throwable.cause != null) throwable.cause!!.message else throwable.message)
-                        }
+
+                if (ConfigFields.EMAIL_DEBUG == true) SkriptMail.gLogger().info("Email was present successfully")
+
+                this.mailer!!.sendMail(email, true)
+                    .whenComplete { _, throwable ->
+                    if (throwable == null) {
+                        if (ConfigFields.EMAIL_DEBUG == true) SkriptMail.gLogger().info("Email was sent successfully!")
+                    } else {
+                        if (ConfigFields.EMAIL_DEBUG == true) SkriptMail.gLogger().error("Sending mail failed! Caused by: %s", if (throwable.cause != null) throwable.cause!!.message else throwable.message)
                     }
+                }
             })
         } catch (ex: Exception) {
             if (ConfigFields.PROJECT_DEBUG == true) SkriptMail.gLogger().error("Sending mail failed! Caused by: %s", if (ex.cause != null) ex.cause!!.message else ex.message)
