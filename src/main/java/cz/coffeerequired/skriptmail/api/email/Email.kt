@@ -1,7 +1,5 @@
 package cz.coffeerequired.skriptmail.api.email
 
-import cz.coffeerequired.skriptmail.api.WillUsed
-
 class Email(
     var field: Account,
     var recipient: MutableList<String>?,
@@ -66,7 +64,7 @@ class Email(
     }
 }
 
-@WillUsed class EmailAddress(val name: String, val email: String) {
+class EmailAddress(val name: String, val email: String) {
     override fun toString(): String {
         return "email address $email for name $name"
     }

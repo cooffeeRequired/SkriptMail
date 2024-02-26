@@ -1,6 +1,5 @@
 package cz.coffeerequired.skriptmail.api.email;
 
-import cz.coffeerequired.skriptmail.api.WillUsed;
 import jakarta.mail.Address;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
@@ -21,7 +20,6 @@ public class BukkitEmailMessageEvent extends Event {
         return id;
     }
 
-    @WillUsed
     public ReceivedEmail getLastReceived() {return this.receivedEmail;}
 
     public void callEventWithData(String subject, Date rec, Object content, Address[] recipients, Address[] from) {
@@ -30,11 +28,11 @@ public class BukkitEmailMessageEvent extends Event {
     }
     private static final HandlerList handlers = new HandlerList();
 
+    @SuppressWarnings("unused") /* Unused getHandlerList() method, this method is required for Skript Events */
     public static HandlerList getHandlerList() {
         return handlers;
     }
 
-    @Override
     public @NotNull HandlerList getHandlers() {
         return handlers;
     }

@@ -14,29 +14,14 @@ import org.bukkit.configuration.file.FileConfiguration
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.plugin.PluginManager
 import org.bukkit.plugin.java.JavaPlugin
-import org.bukkit.plugin.java.LibraryLoader
-import org.eclipse.aether.DefaultRepositorySystemSession
-import org.eclipse.aether.RepositorySystem
-import org.eclipse.aether.artifact.Artifact
-import org.eclipse.aether.artifact.DefaultArtifact
-import org.eclipse.aether.collection.CollectRequest
-import org.eclipse.aether.graph.Dependency
-import org.eclipse.aether.repository.RemoteRepository
-import org.eclipse.aether.resolution.ArtifactResult
-import org.eclipse.aether.resolution.DependencyRequest
-import org.eclipse.aether.resolution.DependencyResolutionException
-import org.eclipse.aether.resolution.DependencyResult
 import java.io.File
 import java.io.InputStream
 import java.io.InputStreamReader
-import java.net.MalformedURLException
-import java.net.URL
-import java.net.URLClassLoader
 import java.nio.file.Files
 import java.util.*
 import java.util.concurrent.TimeUnit
 
-@Suppress("unused", "UNCHECKED_CAST", "RedundantVisibilityModifier")
+//@Suppress("unused", "RedundantVisibilityModifier")
 class Config(
     private val plugin: SkriptMail,
     private val server: Server,
@@ -46,13 +31,6 @@ class Config(
 
     init { init() }
 
-    fun getServer(): Server {
-        return server
-    }
-
-    fun getPlugin(): JavaPlugin {
-        return plugin
-    }
     private var revisionVersion: Any? = null
     private var kotlinVersion: Any? = null
 
@@ -93,58 +71,11 @@ class Config(
         }
     }
 
-    public fun getServerVersion(): Version {
+    fun getServerVersion(): Version {
         return this.serverVersion
     }
 
-    public fun loadLibrary(vararg libraries: String): URLClassLoader? {
-
-        if (!isCalledFromExactMethod("onLoad")) {
-            throw IllegalStateException("Method loadLibraries must be called from method onLoad..")
-        }
-
-
-        val loader = LibraryLoader(this.plugin.logger)
-        if (libraries.isEmpty()) {
-            return null
-        }
-        SkriptMail.logger().info("Loading %s libraries... please wait", libraries.size)
-        val dependencies: MutableList<Dependency> = mutableListOf()
-        for (library: String in libraries) {
-            val art: Artifact = DefaultArtifact(library)
-            val dp = Dependency(art, null)
-            dependencies.add(dp)
-        }
-        var result: DependencyResult? = null
-        try {
-            val repository = getField(loader, "repository") as RepositorySystem?
-            val repositories: List<RemoteRepository>? = getField(loader, "repositories") as List<RemoteRepository>?
-            val session = getField(loader, "session") as DefaultRepositorySystemSession?
-            if (repository != null && session != null) {
-                result = repository.resolveDependencies(session,
-                    DependencyRequest(CollectRequest(null as Dependency?, dependencies, repositories), null)
-                )
-            }
-        } catch (ex: DependencyResolutionException) {
-            throw RuntimeException("Error resolving libraries", ex)
-        }
-
-        val jarFiles: MutableList<URL> = mutableListOf()
-        for (artifact: ArtifactResult in result!!.artifactResults) {
-            val file: File = artifact.artifact.file
-            val url: URL
-            try {
-                url = file.toURI().toURL()
-            } catch (ex: MalformedURLException) {
-                throw AssertionError(ex)
-            }
-            jarFiles.add(url)
-            SkriptMail.logger().info("Loaded library %s", file)
-        }
-        return URLClassLoader(jarFiles.toTypedArray<URL>())
-    }
-
-    public fun initializeSkript(dependency: String) {
+    fun initializeSkript(dependency: String) {
         val pm: PluginManager = this.server.pluginManager
         val l: Logger =   SkriptMail.logger()
         val pl = pm.getPlugin(dependency)
@@ -159,7 +90,7 @@ class Config(
         return l.info("%s was found and hooked.", skriptPrefix)
     }
 
-    public fun classRegistration(self: JavaPlugin, classesPaths: String) {
+    fun classRegistration(self: JavaPlugin, classesPaths: String) {
         val l: Logger =  SkriptMail.logger()
         val pm: PluginManager = this.server.pluginManager
         try {
@@ -172,7 +103,7 @@ class Config(
         }
     }
 
-    public fun initializeResources() {
+    fun initializeResources() {
         loadConfigFile(false, null)
         matchConfiguration()
         loadFileHandler(null, "templates/main.html", replace = false, true)
@@ -196,7 +127,7 @@ class Config(
         return listOf()
     }
 
-    public fun loadConfigFile(replace: Boolean, sender: CommandSender?) {
+    fun loadConfigFile(replace: Boolean, sender: CommandSender?) {
         val (config, file) = loadFileHandler(this.configFile, "config.yml", replace = replace, sender = sender)
         if (config != null && config is FileConfiguration) this.config = config
         if (file != null && file is File) this.configFile = file
@@ -219,7 +150,7 @@ class Config(
         return null
     }
 
-    public fun loadTemplates() {
+    fun loadTemplates() {
         try {
             ConfigFields.TEMPLATES = mutableMapOf()
             val file = File(this.plugin.dataFolder, "templates")
@@ -233,7 +164,7 @@ class Config(
         }
     }
 
-    public fun loadConfigs() {
+    fun loadConfigs() {
         try {
             ConfigFields.PROJECT_DEBUG = this.config.getBoolean("project-debug")
             ConfigFields.EMAIL_DEBUG = this.config.getBoolean("email-debug")
@@ -247,7 +178,7 @@ class Config(
         }
     }
 
-    public fun loadMailboxSettings() {
+    fun loadMailboxSettings() {
         try {
             val mailSection = this.config.getConfigurationSection("mailbox")
             if (mailSection != null) {
@@ -267,7 +198,7 @@ class Config(
         }
     }
 
-    public fun initializeBStats(id: Long) {
+    fun initializeBStats(id: Long) {
         val metricsPrefix = "&#e3e512M&#a6e247e&#6cda6et&#2ece8dr&#00bfa4i&#00afafc&#329dads&r"
         val metrics = Metrics(plugin, id.toInt())
         metrics.addCustomChart(SimplePie(
@@ -305,7 +236,7 @@ class Config(
         }
     }
 
-    public fun registerCommand(self: JavaPlugin, command: String): Any? {
+    fun registerCommand(self: JavaPlugin, command: String): Any? {
         try {
             return self.getCommand(command)?.setExecutor(Commands(SkriptMail.logger(), this))
         } catch (err: Exception) {
@@ -315,6 +246,6 @@ class Config(
     }
 
     companion object {
-        public var executedEmails: MutableMap<Date, Email> = mutableMapOf()
+        var executedEmails: MutableMap<Date, Email> = mutableMapOf()
     }
 }

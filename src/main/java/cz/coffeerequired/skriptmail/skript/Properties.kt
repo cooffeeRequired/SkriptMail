@@ -1,3 +1,5 @@
+@file:Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN")
+
 package cz.coffeerequired.skriptmail.skript
 
 import ch.njol.skript.Skript

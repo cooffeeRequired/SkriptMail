@@ -2,7 +2,6 @@ package cz.coffeerequired.skriptmail.api.email
 
 import cz.coffeerequired.skriptmail.SkriptMail
 import cz.coffeerequired.skriptmail.api.ConfigFields
-import cz.coffeerequired.skriptmail.api.WillUsed
 import io.papermc.paper.threadedregions.scheduler.ScheduledTask
 import jakarta.mail.Folder
 import jakarta.mail.Message
@@ -22,18 +21,17 @@ import java.util.concurrent.TimeUnit
 import kotlin.collections.set
 import kotlin.time.measureTime
 
-class EmailService(val id: String, @WillUsed val session: Session, private val store: Store) {
+class EmailService(val id: String, private val store: Store) {
     companion object {
         private val registeredServices = mutableMapOf<String, EmailService>()
         private val registeredListeners = mutableMapOf<String, Pair<Folder, ScheduledTask>>()
         private val registeredMailbox = mutableMapOf<String, EmailInbox>()
 
-        @WillUsed
         fun tryRegisterNewService(account: Account, id: String = UUID.randomUUID().toString()) {
             try {
                 if (registeredServices[id] != null) return SkriptMail.logger().warn("&cService for id $id is already registered!")
                 val session = createSession()
-                val service = EmailService(id, session, connectStore(account, session))
+                val service = EmailService(id, connectStore(account, session))
                 registeredServices[id] = service
                 SkriptMail.logger().info("Registered new email service for id &f&n$id")
                 tryRegisterAnListener(service, id)
@@ -173,7 +171,6 @@ class EmailService(val id: String, @WillUsed val session: Session, private val s
         }
     }
 
-    @WillUsed
     fun getFolder(folder: String): Folder? = store.getFolder(folder)
 }
 
@@ -198,7 +195,7 @@ class EmailInbox(private val id: String, private var task: Runnable?) {
         scheduler?.shutdownNow(); scheduler = null; task = null; isClosed = true
     }
 
-    @WillUsed fun updateInbox(vararg messages: String) {
+    fun updateInbox(vararg messages: String) {
         CompletableFuture.runAsync {
             val uniqueNewMessages = messages.filter { !this.messages.contains(it) }
             val overflow = (this.messages.size + uniqueNewMessages.size) - 2 * ConfigFields.MAILBOX_PER_REQUEST
