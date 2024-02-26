@@ -3,4 +3,4 @@
 /.gradle
 /gradle
 /src/test/*
-run/libraries/*
+run/**
