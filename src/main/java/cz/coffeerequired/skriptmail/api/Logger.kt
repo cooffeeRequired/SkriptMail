@@ -1,4 +1,6 @@
+@file:Suppress("DEPRECATION")
 package cz.coffeerequired.skriptmail.api
+
 import ch.njol.skript.config.Node
 import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.text.event.HoverEvent
@@ -12,7 +14,6 @@ class Logger(private val version: Version) {
     private var prefix: String = ""
     fun setPrefix(prefix: String) { this.prefix = prefix }
 
-    @Suppress("DEPRECATION")
     private fun messageHandler(isSupported: Boolean, message: String, vararg arguments: Any?, sender: CommandSender, level: Int? = 0, withoutPrefix: Boolean? = false, clickable: Any? = false) {
         var formattedString: String = if (withoutPrefix != true) String.format("&7[ ${this.prefix} &7] $message", *arguments) else message.format(*arguments)
         if (withoutPrefix == false) {
