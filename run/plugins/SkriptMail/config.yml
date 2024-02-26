@@ -1,0 +1,21 @@
+project-debug: true
+email-debug: true
+mailbox:
+    enabled: true # default false
+    folders:
+      - something
+    filter: # regex
+    refresh-rate: 1000
+    rate-unit: SECONDS # MILLISECONDS, SECONDS, MINUTES, HOURS
+    max-fetch-per-request: 20 # default 20
+accounts:
+  example:
+    address: example@example.com
+    type: SMTP # SMTP, IMAP, POP3 -> currently works only SMTP.
+    host: smtp.example.com
+    port: 587
+    auth: true
+    starttls: true
+    auth-credentials:
+      username: <username>
+      password: <password | token | outh2>
