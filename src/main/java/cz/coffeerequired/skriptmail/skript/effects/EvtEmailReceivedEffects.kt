@@ -21,13 +21,6 @@ import jakarta.mail.internet.MimeMultipart
 import kotlinx.coroutines.*
 import org.bukkit.event.Event
 
-// TODO move event-email to [folder] "..."
-// TODO mark event-email as read -> DONE
-// TODO mark event-email as unread -> DONE
-// TODO delete event-email -> Done
-// TODO answer with {_email} ->
-
-
 @Name("Mark email as read/unread")
 @Examples(
     """

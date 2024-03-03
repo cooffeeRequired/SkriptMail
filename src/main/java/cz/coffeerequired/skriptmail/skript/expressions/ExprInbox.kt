@@ -1,6 +1,10 @@
 package cz.coffeerequired.skriptmail.skript.expressions
 
 import ch.njol.skript.Skript
+import ch.njol.skript.doc.Description
+import ch.njol.skript.doc.Examples
+import ch.njol.skript.doc.Name
+import ch.njol.skript.doc.Since
 import ch.njol.skript.lang.Expression
 import ch.njol.skript.lang.ExpressionType
 import ch.njol.skript.lang.SkriptParser
@@ -10,6 +14,14 @@ import cz.coffeerequired.skriptmail.SkriptMail
 import cz.coffeerequired.skriptmail.api.email.EmailServiceProvider
 import jakarta.mail.Message
 import org.bukkit.event.Event
+
+@Name("Inbox Emails")
+@Description("Get emails from the inbox")
+@Since("1.0")
+@Examples("""
+     set {_mails::*} to last 2 emails of service "test" 
+     set {_mail} to first email of service "test"
+""")
 
 class ExprInbox : SimpleExpression<Message>() {
     companion object{
