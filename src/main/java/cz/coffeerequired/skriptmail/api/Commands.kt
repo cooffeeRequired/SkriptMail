@@ -1,5 +1,3 @@
-@file:Suppress("UNUSED_VARIABLE")
-
 package cz.coffeerequired.skriptmail.api
 
 import cz.coffeerequired.skriptmail.SkriptMail
@@ -13,7 +11,6 @@ import org.bukkit.command.TabExecutor
 import org.bukkit.entity.Player
 import java.lang.reflect.Field
 
-@Suppress("UNUSED_PARAMETER")
 class Commands(private val logger: Logger, private val config: Config) : TabExecutor {
     override fun onTabComplete(sender: CommandSender, command: Command, alias: String, args: Array<String>): List<String> {
         val completions: MutableList<String> = ArrayList()
@@ -102,18 +99,18 @@ class Commands(private val logger: Logger, private val config: Config) : TabExec
     private fun printHistory(sender: CommandSender) {
         val builder: StringBuilder = StringBuilder()
         var i = 1
-//        Config.executedEmails.forEach { (date, value) ->
-//            val ( account, recipients ) = value
-//            val (address, type, host, port) = account
-//            if (sender is Player) {
-//                builder.append("- $i. $date $address -> %s [$type $host:$port".format(*recipients!!.toTypedArray()))
-//            } else {
-//                builder.append("$i. [$date] $type $address -> %s using $host:$port".format(*recipients!!.toTypedArray()))
-//            }
-//            i++
-//            this.logger.info(builder.toString(), sender = sender)
-//            builder.clear()
-//        }
+        Config.executedEmails.forEach { (date, value) ->
+            val ( account, recipients ) = value
+            val (address, type, host, port) = account
+            if (sender is Player) {
+                builder.append("- $i. $date $address -> %s [$type $host:$port".format(*recipients!!.toTypedArray()))
+            } else {
+                builder.append("$i. [$date] $type $address -> %s using $host:$port".format(*recipients!!.toTypedArray()))
+            }
+            i++
+            this.logger.info(builder.toString(), sender = sender)
+            builder.clear()
+        }
     }
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<String>): Boolean {

@@ -10,7 +10,6 @@ import jakarta.mail.Folder
 import jakarta.mail.Message
 import jakarta.mail.Store
 import kotlinx.coroutines.*
-import kotlinx.coroutines.Runnable
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import kotlin.time.measureTime
@@ -62,6 +61,7 @@ class EmailMailbox(private val store: Store) {
     private var scheduler: ScheduledExecutorService? = Executors.newSingleThreadScheduledExecutor()
 
     companion object {
+
         /**
          * A map of registered mailboxes, indexed by their IDs.
          */
@@ -95,13 +95,12 @@ class EmailMailbox(private val store: Store) {
          */
         fun register(id: String, store: Store, @Suppress("UNUSED_PARAMETER") allowedFolders: List<String>): EmailMailbox {
             val inbox = EmailMailbox(store)
-            val batch = 50
             store.getFolder("INBOX").use { folder ->
                 folder.open(2)
                 inbox.folder = folder
                 runBlocking {
                     async {
-                        fetchAllPossibleEmails(folder, inbox, batch)
+                        fetchAllPossibleEmails(folder, inbox)
                         inbox.applyTask {
                              if (folder.hasNewMessages()) {
                                  val time = measureTime { updateEmailMailbox(folder, inbox) }
@@ -136,35 +135,16 @@ class EmailMailbox(private val store: Store) {
          *
          * @param folder the folder from which to fetch emails
          * @param inbox the email mailbox to which to add the emails
-         * @param batch the number of messages to fetch at a time
          */
         @OptIn(DelicateCoroutinesApi::class)
-        private suspend fun fetchAllPossibleEmails(folder: Folder, inbox: EmailMailbox, batch: Int) {
-            val messageCount = folder.messageCount
-            val deferredTasks = mutableListOf<Deferred<Unit>>()
-            var messageIndex = 1
-            while (messageIndex <= messageCount) {
-                val endIndex = minOf(messageIndex + batch - 1, messageCount)
-                val messages = folder.getMessages(messageIndex, endIndex)
-                deferredTasks.add(GlobalScope.async { addAllUniqueMessages(messages, inbox) })
-                messageIndex += batch
+        private suspend fun fetchAllPossibleEmails(folder: Folder, inbox: EmailMailbox) {
+            if (PROJECT_DEBUG && EMAIL_DEBUG) SkriptMail.logger().debug("Fetching emails... $inbox, $folder")
+            val task = GlobalScope.async {
+                inbox.updateInbox(*folder.messages)
             }
-            runBlocking { deferredTasks.awaitAll() }
+            task.join()
         }
 
-        /**
-         * Adds all unique messages to the given email mailbox.
-         *
-         * @param messages the messages to add
-         * @param mailbox the email mailbox to which to add the messages
-         */
-        private fun addAllUniqueMessages(messages: Array<Message>, mailbox: EmailMailbox) {
-            messages.forEach { message ->
-                if (!mailbox.messages.contains(message)) {
-                    mailbox.addMessage(message)
-                }
-            }
-        }
     }
 
     /**
@@ -243,4 +223,20 @@ class EmailMailbox(private val store: Store) {
     fun addMessage(message: Message?) {
         this.messages.add(message)
     }
+
+    fun getEmails(intRange: IntRange, i: Int): Array<Message?> {
+        if (this.messages.isEmpty()) return arrayOf()
+        return when (i) {
+            2 -> messages.subList(intRange.first, intRange.last).toTypedArray()
+            1 -> messages.subList((messages.size - intRange.last), (messages.size - intRange.first)).toTypedArray()
+            else -> arrayOf()
+        }
+    }
+    fun getFirstEmail(): Message? {
+        return messages.last()
+    }
+    fun getLastEmail(): Message? {
+        return this.messages.first()
+    }
+
 }

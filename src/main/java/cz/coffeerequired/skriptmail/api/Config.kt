@@ -15,6 +15,7 @@ import cz.coffeerequired.skriptmail.api.ConfigFields.MAILBOX_REFRESH_RATE
 import cz.coffeerequired.skriptmail.api.ConfigFields.PROJECT_DEBUG
 import cz.coffeerequired.skriptmail.api.ConfigFields.TEMPLATES
 import cz.coffeerequired.skriptmail.api.email.Account
+import cz.coffeerequired.skriptmail.api.email.Email
 import cz.coffeerequired.skriptmail.api.email.EmailHosts
 import org.bukkit.Bukkit
 import org.bukkit.Server
@@ -28,6 +29,7 @@ import java.io.File
 import java.io.InputStream
 import java.io.InputStreamReader
 import java.nio.file.Files
+import java.util.*
 import java.util.concurrent.TimeUnit
 
 class Config(private val plugin: SkriptMail, private val server: Server, private val supportedVersions: List<Version>) {
@@ -254,7 +256,7 @@ class Config(private val plugin: SkriptMail, private val server: Server, private
         return null
     }
 
-//    companion object {
-//        var executedEmails: MutableMap<Date, Email> = mutableMapOf()
-//    }
+    companion object {
+        var executedEmails: MutableMap<Date, Email> = mutableMapOf()
+    }
 }

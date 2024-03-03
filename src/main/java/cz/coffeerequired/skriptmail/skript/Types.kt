@@ -6,8 +6,8 @@ import ch.njol.skript.classes.Parser
 import ch.njol.skript.lang.ParseContext
 import ch.njol.skript.registrations.Classes
 import cz.coffeerequired.skriptmail.api.email.Account
-import cz.coffeerequired.skriptmail.api.email.EmailHosts
 import cz.coffeerequired.skriptmail.api.email.Email
+import cz.coffeerequired.skriptmail.api.email.EmailHosts
 import jakarta.mail.Message
 
 

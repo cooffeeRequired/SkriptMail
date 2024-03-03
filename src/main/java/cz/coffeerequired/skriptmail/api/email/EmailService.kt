@@ -29,6 +29,7 @@ class EmailService(
     private var session: Session? = null
     private var store: Store? = null
     private var transport: Transport? = null
+    var mailbox: EmailMailbox? = null
 
     companion object {
         /**
@@ -158,7 +159,6 @@ class EmailService(
                 mailbox.bind(BukkitEmailMessageEvent(serviceId, true))
                 if (PROJECT_DEBUG && EMAIL_DEBUG) { SkriptMail.logger().debug("Mailbox bind event. $0 $mailbox $1 '$serviceId' $2 ${mailbox.event}") }
                 mailbox.folder.open(2)
-
                 if (PROJECT_DEBUG && EMAIL_DEBUG) { SkriptMail.logger().debug("Mailbox opened and folder in use $0 $mailbox, $1 ${mailbox.folder}") }
                 mailbox.folder.addMessageCountListener(object : MessageCountAdapter() {
                     override fun messagesAdded(e: MessageCountEvent?) {
@@ -177,6 +177,8 @@ class EmailService(
                 runners += serviceId to runner
                 if (PROJECT_DEBUG && EMAIL_DEBUG) { SkriptMail.logger().debug("Runner for repeating task registered succesfully $0 $runner") }
                 if (PROJECT_DEBUG && EMAIL_DEBUG) { SkriptMail.logger().debug("Service for id $serviceId was registered succesfully $0 ${this@EmailService}") }
+                this.mailbox = mailbox
+                println("t: ${this.mailbox}, m: $mailbox")
                 return mailbox
             } else {
                 SkriptMail.logger().error("Mailbox cannot be null!")

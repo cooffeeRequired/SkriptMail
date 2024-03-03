@@ -9,6 +9,7 @@ import ch.njol.skript.lang.Expression
 import ch.njol.skript.lang.SkriptParser
 import ch.njol.util.Kleenean
 import cz.coffeerequired.skriptmail.SkriptMail
+import cz.coffeerequired.skriptmail.api.Config
 import cz.coffeerequired.skriptmail.api.ConfigFields.PROJECT_DEBUG
 import cz.coffeerequired.skriptmail.api.email.Email
 import cz.coffeerequired.skriptmail.api.email.EmailService
@@ -17,6 +18,7 @@ import cz.coffeerequired.skriptmail.api.email.EmailServiceProvider.Companion.reg
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.bukkit.event.Event
+import java.util.*
 
 
 @Name("Send email")
@@ -99,6 +101,9 @@ class EffTransmitEmail : Effect() {
             }
         } catch (ex: Exception) {
             ex.printStackTrace()
+        }
+        if (email != null) {
+            Config.executedEmails[Date()] = email
         }
     }
 }
