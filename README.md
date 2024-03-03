@@ -1,8 +1,8 @@
 [//]: # (<- Header ->)
-<p align="center" style="align: center; text-align: center">
-<img align="center" alt="SkMail" width="40%" src="https://github.com/cooffeeRequired/SkriptMail/assets/106232282/04fd017f-2ab2-4d37-a8e2-042d22587408">
+<p style="align: center; text-align: center">
+<img alt="SkMail" width="40%" src="https://github.com/cooffeeRequired/SkriptMail/assets/106232282/04fd017f-2ab2-4d37-a8e2-042d22587408">
 </p>
-<h1 align="center">SkMail</h1>
+<h1 style="align: center;">SkMail</h1>
 
 <h3 align="center">Simple Mailer for Skript using SMTP/POP3/IMAP</h3>
 <h6 align="center">The addon use SimpleMail Java API</h6>
@@ -124,9 +124,9 @@ In the addon folder (`SkriptMail`) you'll see a folder called `templates`, as we
     <p>The Registration {it::team} Team</p>
 </div>
 ```
-
 > [!IMPORTANT]  
-> #### What exactly does the `{it::*}` mean?
+> **What exactly does the `{it::*}` mean?**
+>
 > The `{it::name}` is a placeholder for a variable, which let's us render any template dynamically.
 > In the above template, we have two variable placeholders: `{it::name}` and `{it::team}`. These indicate that it will be changed to a real value when parsed.
 > For example, after parsing the template, the result could be
@@ -183,7 +183,8 @@ set template of {_email} to email template "main" with data {_any::*}
 As you can see, pretty simple stuff. Just make sure that the indexes of the list that you provide as data match the indexes of the placeholder variables defined in the template. Also, if a placeholder variable defined in the template is not provided in the data to said template, it just remains unchanged. That pretty much covers setting the template, so let's move on.
 
 > [!IMPORTANT]  
-> #### Body/Template Priority
+> **Body/Template Priority**
+>
 > You might've noticed in the email form example that we didn't set the template, we only set the body. That's because only one of those can be set at a time, either the body *or* the template. Additionally, a template will always take priority over a body. Let's take a look at the following example:
 > ```applescript
 > set template of {_email} to {_template}

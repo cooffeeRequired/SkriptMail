@@ -1,4 +1,14 @@
 version: ${version}
 types:
-    receivedemail: received email
-    emailaddress: email address
+    emailaccount: email account
+    email service: email service
+    emailmessage: email message
+    email: email
+
+email service:
+	gmail: GMAIL
+	yahoo: YAHOO
+	outlook: OUTLOOK
+	aol: AOL
+	icloud: ICLOUD
+	gmx: GMX

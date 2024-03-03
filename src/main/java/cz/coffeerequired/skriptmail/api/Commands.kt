@@ -1,6 +1,10 @@
 package cz.coffeerequired.skriptmail.api
 
 import cz.coffeerequired.skriptmail.SkriptMail
+import cz.coffeerequired.skriptmail.api.ConfigFields.ACCOUNTS
+import cz.coffeerequired.skriptmail.api.ConfigFields.EMAIL_DEBUG
+import cz.coffeerequired.skriptmail.api.ConfigFields.PROJECT_DEBUG
+import cz.coffeerequired.skriptmail.api.ConfigFields.TEMPLATES
 import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
 import org.bukkit.command.TabExecutor
@@ -35,25 +39,34 @@ class Commands(private val logger: Logger, private val config: Config) : TabExec
         return completions
     }
 
+    @Suppress("unchecked_cast")
+    private fun <T>Class<T>.getValueByKey(key: String): T? {
+        try {
+            val declaredField: Field = this.getDeclaredField(key)
+            declaredField.isAccessible = true
+            return declaredField.get(null) as T
+        } catch (e: NoSuchFieldException) {
+            e.printStackTrace()
+        } catch (e: IllegalAccessException) {
+            e.printStackTrace()
+        }
+        return null
+    }
+
+
     private fun reloadConfig(sender: CommandSender) {
         val before: MutableMap<String, *> = mutableMapOf(
-            "ACCOUNTS" to ConfigFields.ACCOUNTS,
-            "TEMPLATES" to ConfigFields.TEMPLATES,
-            "PROJECT_DEBUG" to ConfigFields.PROJECT_DEBUG,
-            "EMAIL_DEBUG" to ConfigFields.EMAIL_DEBUG
+            "ACCOUNTS" to ACCOUNTS,
+            "TEMPLATES" to TEMPLATES,
+            "PROJECT_DEBUG" to PROJECT_DEBUG,
+            "EMAIL_DEBUG" to EMAIL_DEBUG
         )
         this.config.loadConfigFile(false, sender = sender)
         this.config.loadConfigs()
         var changed = 0
         before.forEach { (key, value) ->
-            try {
-                val declaredField: Field = ConfigFields::class.java.getDeclaredField(key)
-                declaredField.isAccessible = true
-                val field: Any = declaredField.get(null)
-                if (value!!.toString() != field.toString()) { changed++; logger.info("key $key was changed!", sender = sender) }
-            } catch (ex: Exception) {
-                logger.exception(ex, "Something goes wrong in Commands.")
-            }
+            val field = ConfigFields::class.java.getValueByKey(key)
+            if (value!!.toString() != field.toString()) { changed++; logger.info("key $key was changed!", sender = sender) }
         }
         if (changed == 0) { logger.info("Nothing was changed..", sender = sender) }
         else {
@@ -133,7 +146,7 @@ class Commands(private val logger: Logger, private val config: Config) : TabExec
                         this.config.loadTemplates()
                         logger.info(
                             "Reload finished... was loaded &a%s&7 templates",
-                            ConfigFields.TEMPLATES.size,
+                            TEMPLATES.size,
                             sender = sender
                         )
                         logger.emptyLine(sender)
@@ -153,7 +166,7 @@ class Commands(private val logger: Logger, private val config: Config) : TabExec
                         this.config.loadMailboxSettings()
                         logger.info(
                             "Reload finished... was loaded &a%s&7 templates",
-                            ConfigFields.TEMPLATES.size,
+                            TEMPLATES.size,
                             sender = sender
                         )
                         logger.emptyLine(sender)

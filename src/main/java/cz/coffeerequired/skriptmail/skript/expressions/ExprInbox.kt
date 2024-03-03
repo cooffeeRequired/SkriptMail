@@ -11,14 +11,9 @@ import ch.njol.skript.lang.SkriptParser
 import ch.njol.skript.lang.util.SimpleExpression
 import ch.njol.util.Kleenean
 import cz.coffeerequired.skriptmail.SkriptMail
-import cz.coffeerequired.skriptmail.api.email.EmailService
+import cz.coffeerequired.skriptmail.api.email.EmailServiceProvider
+import jakarta.mail.Message
 import org.bukkit.event.Event
-
-class InboxEmails(val subject: String, val content: String) {
-    override fun toString(): String {
-        return "email with subject $subject & and body $content"
-    }
-}
 
 @Name("Inbox Emails")
 @Description("Get emails from the inbox")
@@ -27,11 +22,11 @@ class InboxEmails(val subject: String, val content: String) {
      set {_mails::*} to last 2 emails of service "test" 
      set {_mail} to first email of service "test"
 """)
-class ExprInbox : SimpleExpression<InboxEmails>() {
 
+class ExprInbox : SimpleExpression<Message>() {
     companion object{
         init {
-            Skript.registerExpression(ExprInbox::class.java, InboxEmails::class.java, ExpressionType.SIMPLE,
+            Skript.registerExpression(ExprInbox::class.java, Message::class.java, ExpressionType.SIMPLE,
                 "(1:last|2:first) message of service %string%",
                 "(1:last|2:first) %number% messages of service %string%"
             )
@@ -43,50 +38,11 @@ class ExprInbox : SimpleExpression<InboxEmails>() {
     private var isLast: Boolean = false
     private var multiple: Boolean = false
 
-
-    override fun get(event: Event?): Array<InboxEmails?> {
-        val id = exprServiceId.getSingle(event)
-        val inbox = id?.let { EmailService.tryGetInbox(it) }
-        if (inbox == null) { SkriptMail.logger().warn("&cThe service or mailbox of the given id $id weren't initialized yet."); return arrayOf() }
-        return if (multiple) {
-            val count = exprNum.getSingle(event)
-            run {
-                val messages = inbox.getEmails(0..(count?.toInt() ?: 10), if(isLast) 2 else 1).map { str ->
-                    val parts = str?.split("c:")
-                    if (parts?.size!! > 1) {
-                        val subject = parts[0].slice(8..<parts[0].length)
-                        val content = parts[1]
-                        InboxEmails(subject, content)
-                    } else { null }
-                }
-                return messages.toTypedArray()
-            }
-        } else {
-            var result: InboxEmails? = null
-            val message = if(isLast) inbox.getLastEmail() else inbox.getFirstEmail()
-            val parts = message?.split("c:")
-            if (parts?.size!! > 1) {
-                val subject = parts[0].slice(8..<parts[0].length)
-                val content = parts[1]
-                result = InboxEmails(subject, content)
-            }
-            arrayOf(result)
-        }
-    }
-
-    override fun isSingle(): Boolean {
-        return !multiple
-    }
-
-    override fun getReturnType(): Class<out InboxEmails> {
-        return InboxEmails::class.java
-    }
-
     override fun toString(event: Event?, debug: Boolean): String {
-        return "${if(isLast) "last" else "first" } ${"${exprNum.toString(event, debug)} messages"} of service ${exprServiceId.toString(event, debug)}"
+        return "${if(isLast) "last" else "first" } of service ${exprServiceId.toString(event, debug)}"
     }
 
-    @Suppress("unchecked_cast")
+    @Suppress("UNCHECKED_CAST")
     override fun init(
         expressions: Array<out Expression<*>>?,
         matchedPattern: Int,
@@ -103,5 +59,26 @@ class ExprInbox : SimpleExpression<InboxEmails>() {
             this.exprServiceId = expressions?.get(0) as Expression<String>
         }
         return true
+    }
+
+    override fun isSingle(): Boolean = !multiple
+
+    override fun getReturnType(): Class<out Message> = Message::class.java
+
+    override fun get(event: Event?): Array<Message?> {
+        val id = exprServiceId.getSingle(event)
+        val provider = id?.let { EmailServiceProvider.registeredServices[id] }
+        if (provider == null) { SkriptMail.logger().warn("&cThe service or mailbox of the given id $id weren't initialized yet."); return arrayOf() }
+        val mailbox = provider.mailbox
+        if (mailbox != null) {
+            return if (multiple) {
+                val count = exprNum.getSingle(event)
+                mailbox.getEmails(0..(count?.toInt() ?: 10), if(isLast) 2 else 1)
+            } else {
+                val message = if(isLast) mailbox.getLastEmail() else mailbox.getFirstEmail()
+                arrayOf(message)
+            }
+        }
+        return arrayOf()
     }
 }
