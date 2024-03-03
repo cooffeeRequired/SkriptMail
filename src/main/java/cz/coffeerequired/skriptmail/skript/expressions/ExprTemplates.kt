@@ -13,7 +13,7 @@ import ch.njol.skript.lang.util.SimpleExpression
 import ch.njol.skript.variables.Variables
 import ch.njol.util.Kleenean
 import cz.coffeerequired.skriptmail.SkriptMail
-import cz.coffeerequired.skriptmail.api.ConfigFields
+import cz.coffeerequired.skriptmail.api.ConfigFields.TEMPLATES
 import cz.coffeerequired.skriptmail.api.tryGetContent
 import org.bukkit.event.Event
 import java.util.TreeMap
@@ -69,7 +69,7 @@ class ExprTemplates : SimpleExpression<String>() {
     @Suppress("unchecked_cast")
     override fun get(event: Event): Array<String?> {
         return when (line) {
-            0 -> ConfigFields.TEMPLATES.map { it.key.replace(".html", "") }.toTypedArray()
+            0 -> TEMPLATES.map { it.key.replace(".html", "") }.toTypedArray()
             1 -> {
                 val id = this.templateID.getSingle(event)
                 val template = id?.let { tryGetContent(it) }

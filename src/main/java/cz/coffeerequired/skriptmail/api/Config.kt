@@ -4,8 +4,18 @@ import ch.njol.skript.Skript
 import ch.njol.skript.bstats.bukkit.Metrics
 import ch.njol.skript.bstats.charts.SimplePie
 import cz.coffeerequired.skriptmail.SkriptMail
+import cz.coffeerequired.skriptmail.api.ConfigFields.ACCOUNTS
+import cz.coffeerequired.skriptmail.api.ConfigFields.EMAIL_DEBUG
+import cz.coffeerequired.skriptmail.api.ConfigFields.MAILBOX_BATCH_PER_REQUEST
+import cz.coffeerequired.skriptmail.api.ConfigFields.MAILBOX_ENABLED
+import cz.coffeerequired.skriptmail.api.ConfigFields.MAILBOX_FILTER
+import cz.coffeerequired.skriptmail.api.ConfigFields.MAILBOX_FOLDERS
+import cz.coffeerequired.skriptmail.api.ConfigFields.MAILBOX_RATE_UNIT
+import cz.coffeerequired.skriptmail.api.ConfigFields.MAILBOX_REFRESH_RATE
+import cz.coffeerequired.skriptmail.api.ConfigFields.PROJECT_DEBUG
+import cz.coffeerequired.skriptmail.api.ConfigFields.TEMPLATES
 import cz.coffeerequired.skriptmail.api.email.Account
-import cz.coffeerequired.skriptmail.api.email.Email
+import cz.coffeerequired.skriptmail.api.email.EmailHosts
 import org.bukkit.Bukkit
 import org.bukkit.Server
 import org.bukkit.command.CommandSender
@@ -18,30 +28,24 @@ import java.io.File
 import java.io.InputStream
 import java.io.InputStreamReader
 import java.nio.file.Files
-import java.util.*
 import java.util.concurrent.TimeUnit
 
-//@Suppress("unused", "RedundantVisibilityModifier")
-class Config(
-    private val plugin: SkriptMail,
-    private val server: Server,
-    private val supportedVersions: List<Version>,
-) {
+class Config(private val plugin: SkriptMail, private val server: Server, private val supportedVersions: List<Version>) {
     private lateinit var serverVersion: Version
-
     init { init() }
-
     private var revisionVersion: Any? = null
     private var kotlinVersion: Any? = null
+    fun getRevisionVersion(): Any? = this.revisionVersion
+    fun getKotlinVersion(): Any? = this.kotlinVersion
 
-    fun getRevisionVersion(): Any? {
-        return this.revisionVersion
-    }
 
-    fun getKotlinVersion(): Any? {
-        return this.kotlinVersion
-    }
-
+    /**
+     * Returns the exact version of the server.
+     *
+     * @param str the version string
+     * @return the version
+     * @throws Exception if the version cannot be determined
+     */
     private fun getExactVersion(str: String): Version {
         try {
             var literalVersion: String = str.split("MC:")[1]
@@ -71,9 +75,7 @@ class Config(
         }
     }
 
-    fun getServerVersion(): Version {
-        return this.serverVersion
-    }
+    fun getServerVersion(): Version = this.serverVersion
 
     fun initializeSkript(dependency: String) {
         val pm: PluginManager = this.server.pluginManager
@@ -83,7 +85,7 @@ class Config(
             l.error("Dependency [%s] weren't found. Check your /plugins folder", dependency)
             return pm.disablePlugin(this.plugin)
         } else if (!pl.isEnabled) {
-            l.error("Opps! Seems like SkJson was loaded before %s, something delayed the start. Try restart your server", dependency)
+            l.error("Opps! Seems like SkMail was loaded before %s, something delayed the start. Try restart your server", dependency)
             return pm.disablePlugin(this.plugin)
         }
         val skriptPrefix = "&#e3e512S&#9ae150k&#55d57br&#00c59ci&#00b2aep&#329dadt&r"
@@ -109,7 +111,7 @@ class Config(
         loadFileHandler(null, "templates/main.html", replace = false, true)
         loadConfigs()
         loadMailboxSettings()
-
+        loadTemplates()
     }
     private var configFile: File? = null
     private lateinit var config: FileConfiguration
@@ -136,28 +138,35 @@ class Config(
     private fun getExactRecord(config: ConfigurationSection?, path: String): Account? {
         val section = config!!.getConfigurationSection(path)
         if (section != null) {
+            val service = section.getEnum("service", EmailHosts::class)
             val address = section.getString("address")
-            val type = section.getEnum("type", EmailFieldType::class)
-            val host = section.getString("host")
-            val port = section.getLong("port")
-            val auth = section.getBoolean("auth")
-            val starttls = section.getBoolean("starttls")
+            var type: EmailFieldType? = null
+            var host: String? = null
+            var port: Long? = null
+            var auth: Boolean? = null
+            var startTLS: Boolean? = null
+            if (service == null) {
+                type = section.getEnum("type", EmailFieldType::class)
+                host = section.getString("host")
+                port = section.getLong("port")
+                auth = section.getBoolean("auth")
+                startTLS = section.getBoolean("starttls")
+            }
             val authSection = section.getConfigurationSection("auth-credentials")
             val authSUsername = authSection!!.getString("username")
             val authSPassword = authSection.getString("password")
-            return Account(address, type, host, port, auth, starttls, path, authSUsername, authSPassword)
+            return Account(address, type, host, port, auth, startTLS, path, authSUsername, authSPassword, service?.host)
         }
         return null
     }
 
     fun loadTemplates() {
         try {
-            ConfigFields.TEMPLATES = mutableMapOf()
             val file = File(this.plugin.dataFolder, "templates")
             val fileStream = Files.walk(file.toPath())
             fileStream.forEach {
                 val f = it.toFile()
-                if (f.isFile) { ConfigFields.TEMPLATES[f.name] = Files.readString(it) }
+                if (f.isFile) { TEMPLATES[f.name] = Files.readString(it) }
             }
         } catch (ex: Exception) {
             SkriptMail.logger().exception(ex, null)
@@ -166,13 +175,13 @@ class Config(
 
     fun loadConfigs() {
         try {
-            ConfigFields.PROJECT_DEBUG = this.config.getBoolean("project-debug")
-            ConfigFields.EMAIL_DEBUG = this.config.getBoolean("email-debug")
+            PROJECT_DEBUG = this.config.getBoolean("project-debug")
+            EMAIL_DEBUG = this.config.getBoolean("email-debug")
             val list: MutableList<Account> = mutableListOf()
             val section = this.config.getConfigurationSection("accounts")
             val keys = section!!.getKeys(false)
             if (keys.isNotEmpty()) { for (key in keys) { getExactRecord(section, key)?.let { list.add(it) } } }
-            ConfigFields.ACCOUNTS = list
+            ACCOUNTS = list
         } catch (ex: Exception) {
             SkriptMail.logger().exception(ex, msg = null)
         }
@@ -182,15 +191,15 @@ class Config(
         try {
             val mailSection = this.config.getConfigurationSection("mailbox")
             if (mailSection != null) {
-                ConfigFields.MAILBOX_ENABLED = mailSection.getBoolean("enabled")
-                ConfigFields.MAILBOX_FILTER = mailSection.getString("filter")?.let { Regex(it) }
-                ConfigFields.MAILBOX_REFRESH_RATE = mailSection.getLong("refresh-rate")
-                ConfigFields.MAILBOX_PER_REQUEST = mailSection.getLong("max-fetch-per-request")
-                ConfigFields.MAILBOX_RATE = mailSection.getString("rate-unit")?.let { TimeUnit.valueOf(it.uppercase())}!!
-                ConfigFields.MAILBOX_FOLDERS = mailSection.getStringList("folders")
+                MAILBOX_ENABLED = mailSection.getBoolean("enabled")
+                MAILBOX_FILTER = mailSection.getString("filter")?.let { Regex(it) }
+                MAILBOX_REFRESH_RATE = mailSection.getLong("refresh-rate")
+                MAILBOX_BATCH_PER_REQUEST = mailSection.getLong("max-fetch-per-request")
+                MAILBOX_RATE_UNIT = mailSection.getString("rate-unit")?.let { TimeUnit.valueOf(it.uppercase())}!!
+                MAILBOX_FOLDERS = mailSection.getStringList("folders")
 
-                if (ConfigFields.MAILBOX_PER_REQUEST > 20) {
-                    SkriptMail.logger().warn("&eYou have set ${ConfigFields.MAILBOX_PER_REQUEST} a value greater than 20. items for a single query to the email server! This can cause performance issues")
+                if (MAILBOX_BATCH_PER_REQUEST > 100) {
+                    SkriptMail.logger().warn("&eYou have set $MAILBOX_BATCH_PER_REQUEST a value greater than 100. items for a single query to the email server! This can cause performance issues")
                 }
             }
         } catch (ex: Exception) {
@@ -245,7 +254,7 @@ class Config(
         return null
     }
 
-    companion object {
-        var executedEmails: MutableMap<Date, Email> = mutableMapOf()
-    }
+//    companion object {
+//        var executedEmails: MutableMap<Date, Email> = mutableMapOf()
+//    }
 }

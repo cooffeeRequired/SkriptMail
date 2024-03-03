@@ -9,6 +9,12 @@ mailbox:
     rate-unit: SECONDS # MILLISECONDS, SECONDS, MINUTES, HOURS
     max-fetch-per-request: 20 # default 20
 accounts:
+  using_predefined:
+    address: Jorgeee;testing@gmail.com
+    service: GMAIL
+    auth-credentials:
+      username: <username>
+      password: <password | token | outh2>
   example:
     address: example@example.com
     type: SMTP # SMTP, IMAP, POP3 -> currently works only SMTP.

@@ -1,29 +1,35 @@
 package cz.coffeerequired.skriptmail.api.email
 
-class Email(
-    var field: Account,
-    var recipient: MutableList<String>?,
-    var subject: String?,
-    var content: String?,
-) {
-    init {
-        if (recipient == null) recipient = mutableListOf()
-    }
+import cz.coffeerequired.skriptmail.SkriptMail
+import cz.coffeerequired.skriptmail.api.ConfigFields.PROJECT_DEBUG
 
+class Email(
+    var account: Account,
+    var recipients: MutableList<String>? = mutableListOf(),
+    var subject: String? = "Mail from SkriptMail service",
+    var content: String? = "",
+    var isRegistered: Boolean? = false,
+) {
     var hasTemplate: Boolean = false
 
-    operator fun component1(): Account { return this.field }
-    operator fun component2(): MutableList<String>? { return this.recipient }
-    operator fun component3(): String? { return this.subject }
-    operator fun component4(): String? { return this.content }
+    /** @return [Account] [account] content*/
+    operator fun component1(): Account = this.account
+    /** @return [MutableList<String>] [recipients] recipients*/
+    operator fun component2(): MutableList<String>? = this.recipients
+    /** @return [String] subject*/
+    operator fun component3(): String? = this.subject
+    /** @return [String] content*/
+    operator fun component4(): String? = this.content
+    /** @return [Boolean] isRegistered*/
+    operator fun component5(): Boolean = this.isRegistered ?: false
 
     companion object {
         enum class Tokens(var value: String) {
             SERVICE("service"),
             HOST("host"),
             PORT("port"),
-            OPTAUTH("optAuth"),
-            OPTSTARTTLS("startTls"),
+            OPTAUTH("optauth"),
+            OPTSTARTTLS("starttls"),
         }
 
         fun tokenize(input: String): MutableMap<Tokens, String>{
@@ -48,6 +54,7 @@ class Email(
                         if (aCounter == 0) { tokens[Tokens.OPTAUTH] = buffer.toString(); buffer.clear() }
                         aCounter++
                     }
+                    '=' -> buffer.clear()
                     else -> {
                         buffer.append(ch)
                         if (isOptional) {
@@ -59,13 +66,12 @@ class Email(
                 }
                 i++
             }
+            if (PROJECT_DEBUG) SkriptMail.logger().debug("Tokenized input: $input, tokens: $tokens")
             return tokens
         }
     }
-}
 
-class EmailAddress(val name: String, val email: String) {
     override fun toString(): String {
-        return "email address $email for name $name"
+        return "Email{account=${account}, recipients=${recipients?.toTypedArray().contentToString()}, subject='$subject', content='$content', registered=$isRegistered}"
     }
 }

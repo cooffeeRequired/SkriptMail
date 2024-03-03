@@ -11,8 +11,7 @@ import ch.njol.skript.registrations.EventValues
 import ch.njol.skript.util.Getter
 import ch.njol.util.Kleenean
 import cz.coffeerequired.skriptmail.api.email.BukkitEmailMessageEvent
-import cz.coffeerequired.skriptmail.api.email.EmailAddress
-import jakarta.mail.Address
+import jakarta.mail.Message
 import org.bukkit.event.Event
 import java.util.*
 
@@ -27,11 +26,13 @@ class EvtEmailReceived : SkriptEvent() {
     override fun init(args: Array<out Literal<*>>?, matchedPattern: Int, parseResult: SkriptParser.ParseResult?): Boolean { return true }
     companion object {
         init {
-            Skript.registerEvent(
-              "Email Receive",
-              EvtEmailReceived::class.java,
-              BukkitEmailMessageEvent::class.java,
-              "email receive"
+            Skript.registerEvent("Email Receive", EvtEmailReceived::class.java, BukkitEmailMessageEvent::class.java, "email receive")
+
+            EventValues.registerEventValue(
+                BukkitEmailMessageEvent::class.java, Message::class.java,
+                object : Getter<Message, BukkitEmailMessageEvent>() {
+                    override fun get(event: BukkitEmailMessageEvent): Message? { return null }
+                }, 0
             )
 
             EventValues.registerEventValue(
@@ -40,33 +41,26 @@ class EvtEmailReceived : SkriptEvent() {
                     override fun get(event: BukkitEmailMessageEvent): String { return event.id() }
                 }, 0
             )
+
             EventValues.registerEventValue(
                 BukkitEmailMessageEvent::class.java, Date::class.java,
                 object : Getter<Date, BukkitEmailMessageEvent>() {
-                    override fun get(event: BukkitEmailMessageEvent): Date { return event.lastReceived.rec }
+                    override fun get(event: BukkitEmailMessageEvent): Date? { return event.lastReceived?.date }
                 }, 0
             )
-            EventValues.registerEventValue(
-                BukkitEmailMessageEvent::class.java, EmailAddress::class.java,
-                object : Getter<EmailAddress, BukkitEmailMessageEvent>() {
-                    override fun get(event: BukkitEmailMessageEvent): EmailAddress {
-                        return EmailAddress("", "")
-                    }
-                }, 0
-            )
-    } }
+        } }
 }
 
-@Name("Event-Id (On Email Received)")
+@Name("Service id (On Email Received)")
 @Description("Gets id of service from that event")
 @Since("1.0")
 @Examples("""
     on email received:
-        send event-id to console
+        send event-service id to console
 """)
 class EvtExprEmailReceivedID : EventValueExpression<String>(String::class.java) {
     companion object {
-        init { Skript.registerExpression(EvtExprEmailReceivedID::class.java, String::class.java, ExpressionType.EVENT, "[the] [event-]id") }
+        init { Skript.registerExpression(EvtExprEmailReceivedID::class.java, String::class.java, ExpressionType.EVENT, "[the] [event-][email ]service id") }
     }
 }
 
@@ -81,17 +75,43 @@ class EvtExprEmailReceivedMessage : EventValueExpression<String>(String::class.j
     companion object {
         init {
             Skript.registerExpression(EvtExprEmailReceivedMessage::class.java, String::class.java, ExpressionType.EVENT,
-                "[the] [event-]message"
+                "[the] [event-][email ]message"
             )
         }
     }
 
     override fun get(event: Event?): Array<String?> {
-        if (event is BukkitEmailMessageEvent) { return arrayOf(event.lastReceived.content.toString()) }
+        if (event is BukkitEmailMessageEvent) { return arrayOf(event.lastReceived?.content.toString()) }
         return super.get(event)
     }
 
 }
+
+@Name("Event-Email (On Email Received)")
+@Description("Gets the email object")
+@Since("1.1")
+@Examples("""
+    on email received:
+        mark event-email as unread
+        mark event-email as read
+        move event-email to "..."
+""")
+class EvtExprEmailReceivedEmail : EventValueExpression<Message>(Message::class.java) {
+    companion object {
+        init {
+            Skript.registerExpression(EvtExprEmailReceivedEmail::class.java, Message::class.java, ExpressionType.EVENT,
+                "[the] [event-]email"
+            )
+        }
+    }
+
+    override fun get(event: Event?): Array<Message?> {
+        if (event is BukkitEmailMessageEvent) { return arrayOf(event.lastReceived?.msg) }
+        return super.get(event)
+    }
+
+}
+
 
 @Name("Event-Subject (On Email Received)")
 @Description("Gets subject from that event")
@@ -104,13 +124,15 @@ class EvtExprEmailReceivedSubject : EventValueExpression<String>(String::class.j
     companion object {
         init {
             Skript.registerExpression(EvtExprEmailReceivedSubject::class.java, String::class.java, ExpressionType.EVENT,
-                "[the] [event-]subject"
+                "[the] [event-][email ]subject"
             )
         }
     }
 
     override fun get(event: Event?): Array<String?> {
-        if (event is BukkitEmailMessageEvent) { return arrayOf(event.lastReceived.subject) }
+        if (event is BukkitEmailMessageEvent) {
+            return arrayOf(event.lastReceived?.subject)
+        }
         return super.get(event)
     }
 }
@@ -122,20 +144,20 @@ class EvtExprEmailReceivedSubject : EventValueExpression<String>(String::class.j
     on email received:
         send event-recipient to console
 """)
-class EvtExprEmailReceivedRecipient : EventValueExpression<EmailAddress>(EmailAddress::class.java) {
+class EvtExprEmailReceivedRecipient : EventValueExpression<String>(String::class.java) {
     companion object {
         init {
-            Skript.registerExpression(EvtExprEmailReceivedRecipient::class.java, EmailAddress::class.java, ExpressionType.EVENT,
-                "[the] [event-]recipient(1:s|)"
+            Skript.registerExpression(EvtExprEmailReceivedRecipient::class.java, String::class.java, ExpressionType.EVENT,
+                "[the] [event-][email ]recipient(1:s|)"
             )
         }
     }
 
     private var isPlural: Boolean = false
 
-    override fun get(event: Event?): Array<EmailAddress> {
+    override fun get(event: Event?): Array<String?> {
         if (event is BukkitEmailMessageEvent) {
-            val recipients: Array<EmailAddress> = event.lastReceived.recipients.convertAddress()
+            val recipients: Array<String?> = event.lastReceived!!.recipients
             return if(!isPlural) arrayOf(recipients.first()) else recipients
         }
         return arrayOf()
@@ -159,32 +181,18 @@ class EvtExprEmailReceivedDate : EventValueExpression<Date>(Date::class.java) {
     companion object {
         init {
             Skript.registerExpression(EvtExprEmailReceivedDate::class.java, Date::class.java, ExpressionType.EVENT,
-                "[the] [event-]received date"
+                "[the] [event-][email ]received date"
             )
         }
     }
 
 
     override fun get(event: Event?): Array<Date?> {
-        if (event is BukkitEmailMessageEvent) { return arrayOf(event.lastReceived.rec) }
+        if (event is BukkitEmailMessageEvent) { return arrayOf(event.lastReceived?.date) }
         return super.get(event)
     }
 }
 
-fun Array<Address>.convertAddress(): Array<EmailAddress> {
-    return this.map {
-        val iAddress = it.toString()
-        val iStart = iAddress.indexOfFirst { it == '<' }+1
-        val iEnd = iAddress.indexOfLast { it == '>' }
-        if (iStart > 0 || iEnd > 0 || iStart-2 > 0) {
-            val email = iAddress.substring(iStart, iEnd)
-            val name = iAddress.substring(0, iStart-2)
-            EmailAddress(name, email)
-        } else {
-            EmailAddress("<none>", iAddress)
-        }
-    }.toTypedArray()
-}
 
 @Name("Event-Sender(On Email Received)")
 @Description("Gets the sender of that email from event")
@@ -193,17 +201,17 @@ fun Array<Address>.convertAddress(): Array<EmailAddress> {
     on email received:
          send event-sender to console
 """)
-class EvtExprEmailSender: EventValueExpression<EmailAddress>(EmailAddress::class.java) {
+class EvtExprEmailSender: EventValueExpression<String>(String::class.java) {
     companion object {
         init {
-            Skript.registerExpression(EvtExprEmailSender::class.java, EmailAddress::class.java, ExpressionType.EVENT,
-                "[the] [event-]sender"
+            Skript.registerExpression(EvtExprEmailSender::class.java, String::class.java, ExpressionType.EVENT,
+                "[the] [event-][email ]sender"
             )
         }
     }
 
-    override fun get(event: Event?): Array<EmailAddress> {
-        if (event is BukkitEmailMessageEvent) { return event.lastReceived.from.convertAddress() }
+    override fun get(event: Event?): Array<String?> {
+        if (event is BukkitEmailMessageEvent) { return arrayOf( event.lastReceived!!.from )}
         return arrayOf()
     }
 }

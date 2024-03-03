@@ -2,6 +2,7 @@
 package cz.coffeerequired.skriptmail.api
 
 import ch.njol.skript.config.Node
+import cz.coffeerequired.skriptmail.SkriptMail
 import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.text.event.HoverEvent
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
@@ -18,6 +19,7 @@ class Logger(private val version: Version) {
         var formattedString: String = if (withoutPrefix != true) String.format("&7[ ${this.prefix} &7] $message", *arguments) else message.format(*arguments)
         if (withoutPrefix == false) {
             when(level) {
+                -1 -> formattedString = "&8[${SkriptMail.instance().pluginMeta.name}] $message"
                 1 -> formattedString = String.format("&7[ ${this.prefix} ${"info".gradient("#38F6F1", "#38B5F6")} &7] $message", *arguments)
                 2 -> formattedString = String.format("&7[ ${this.prefix} ${"warn".gradient("#F6D838", "#B29107")} &7] $message", *arguments)
                 3 -> formattedString = String.format("&7[ ${this.prefix} ${"error".gradient("#FA3B3B", "#8C0404")} &7] $message", *arguments)
@@ -52,6 +54,15 @@ class Logger(private val version: Version) {
             message = "",
             sender = sender ?: this.sender,
             withoutPrefix = true
+        )
+    }
+
+    fun debug(vararg messages: String, sender: CommandSender = Bukkit.getConsoleSender()) {
+        this.messageHandler(
+            true,
+            message = messages.joinToString("\n"),
+            sender = sender,
+            level = -1
         )
     }
 

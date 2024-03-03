@@ -1,237 +1,200 @@
 package cz.coffeerequired.skriptmail.api.email
 
 import cz.coffeerequired.skriptmail.SkriptMail
-import cz.coffeerequired.skriptmail.api.ConfigFields
+import cz.coffeerequired.skriptmail.api.ConfigFields.EMAIL_DEBUG
+import cz.coffeerequired.skriptmail.api.ConfigFields.PROJECT_DEBUG
+import cz.coffeerequired.skriptmail.api.isHTML
 import io.papermc.paper.threadedregions.scheduler.ScheduledTask
-import jakarta.mail.Folder
-import jakarta.mail.Message
-import jakarta.mail.Session
-import jakarta.mail.Store
+import jakarta.mail.*
 import jakarta.mail.event.MessageCountAdapter
 import jakarta.mail.event.MessageCountEvent
+import jakarta.mail.internet.InternetAddress
 import jakarta.mail.internet.MimeMessage
 import kotlinx.coroutines.*
 import org.bukkit.Bukkit
-import java.lang.Runnable
+import java.time.Duration
+import java.time.Instant
 import java.util.*
-import java.util.concurrent.CompletableFuture
-import java.util.concurrent.Executors
-import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
-import kotlin.collections.set
-import kotlin.time.measureTime
 
-class EmailService(val id: String, private val store: Store) {
+class EmailService(
+    val serviceId: String = UUID.randomUUID().toString(),
+    private val properties: Properties = Properties(),
+    private val usernameOrEmail: String = "",
+    private val password: String = "",
+    val address: String,
+    val host: EmailHost?
+) {
+
+    private var session: Session? = null
+    private var store: Store? = null
+    private var transport: Transport? = null
+
     companion object {
-        private val registeredServices = mutableMapOf<String, EmailService>()
-        private val registeredListeners = mutableMapOf<String, Pair<Folder, ScheduledTask>>()
-        private val registeredMailbox = mutableMapOf<String, EmailInbox>()
-
-        fun tryRegisterNewService(account: Account, id: String = UUID.randomUUID().toString()) {
-            try {
-                if (registeredServices[id] != null) return SkriptMail.logger().warn("&cService for id $id is already registered!")
-                val session = createSession()
-                val service = EmailService(id, connectStore(account, session))
-                registeredServices[id] = service
-                SkriptMail.logger().info("Registered new email service for id &f&n$id")
-                tryRegisterAnListener(service, id)
-            } catch (ex: Exception) {
-                SkriptMail.logger().exception(ex, "Registration of new Service")
-            }
+        /**
+         * Performs an asynchronous operation.
+         *
+         * @param block the block of code to execute as an asynchronous operation
+         */
+        @OptIn(DelicateCoroutinesApi::class)
+        suspend fun performAsyncOperation(block: suspend () -> Unit) {
+            val task = GlobalScope.async { block() }
+            runBlocking { task.await() }
         }
 
-        private fun tryRegisterAnListener(service: EmailService, id: String) {
-            val folder = service.getFolder("INBOX") ?: throw IllegalArgumentException("INBOX folder not found")
-            folder.open(Folder.READ_ONLY)
-            val event = BukkitEmailMessageEvent(id, true)
-            val inbox = tryRegisterMailBox(folder, id)
-            folder.addMessageCountListener(object : MessageCountAdapter() {
-                override fun messagesAdded(e: MessageCountEvent?) {
-                    runBlocking {
-                        launch {
-                            val mess = e!!.messages
-                            for (m in mess) {
-                                inbox.addMessage("Subject: ${m.subject} c:${if(m.contentType.contains("TEXT")) m.content else "Unsupported body of email!"}")
-                                event.callEventWithData(
-                                    m.subject,
-                                    m.receivedDate,
-                                    if(m.contentType.contains("TEXT")) m.content else "Unsupported body of email!",
-                                    m.allRecipients,
-                                    m.from
-                                )
+        private val runners = mutableMapOf<String, ScheduledTask>()
+
+        fun sendAnonymous(email: Email?, username: String?, password: String?) {
+            if (email == null || username == null || password == null) return
+
+            val host: EmailHost = email.account.component10() ?: host {
+                val (_, _, host, port, _, starttls, _) = email.account
+                smtp("smtp.${host}", port!!.toInt())
+                imap("imap.${host}", 993)
+                tlsAllowed = starttls == true
+                sslAllowed = true
+                name("Custom")
+            }
+
+            val service = EmailServiceProvider.newEmailService(email.account.id to UUID.randomUUID().toString(), email.account.address, host, username, password)
+            service.tryConnect({
+                runBlocking {
+                    launch {
+                        it.sendEmail(*email.recipients!!.toTypedArray(), content = email.content ?: "",subject =  email.subject ?: "")
+                    }.join()
+                }
+                it.selfDestroy()
+            }, true)
+
+        }
+    }
+
+    private fun createSMTPConnection() {
+        val transport = session?.getTransport("smtp")
+        transport?.connect()
+        if (PROJECT_DEBUG && EMAIL_DEBUG) { SkriptMail.logger().debug("[SMTP] connection status $0 ${transport?.isConnected} $1 $this") }
+        this.transport = transport
+    }
+
+    fun selfDestroy() {
+        this.transport?.close()
+        this.store?.close()
+        EmailServiceProvider.registeredServices.remove(this.serviceId)
+    }
+
+
+    private fun createIMAPConnection() {
+        val store = session?.getStore("imap")
+        store?.connect()
+        if (PROJECT_DEBUG && EMAIL_DEBUG) { SkriptMail.logger().debug("[IMAP] connection status $0 ${store?.isConnected} $1 $this") }
+        this.store = store
+    }
+
+    fun tryConnect(callback: (it: EmailService) -> Unit, noImap: Boolean? = false) {
+        val startTime = Instant.now()
+        if (PROJECT_DEBUG && EMAIL_DEBUG) { SkriptMail.logger().debug("Trying established connection $0 $this") }
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val session = if(this@EmailService.session == null) {
+                    withContext(Dispatchers.IO) {
+                        Session.getInstance(properties, object : Authenticator() {
+                            override fun getPasswordAuthentication(): PasswordAuthentication = PasswordAuthentication(usernameOrEmail, password)
+                        })
+                    }
+                } else { this@EmailService.session }
+                this@EmailService.session = session
+
+                val job = async {
+                    createSMTPConnection()
+                    if (noImap != true) createIMAPConnection()
+                }
+                job.await()
+                callback(this@EmailService)
+                val endTime = Instant.now()
+                val duration = Duration.between(startTime, endTime)
+                if (PROJECT_DEBUG && EMAIL_DEBUG) { SkriptMail.logger().debug("Total connection time for [SMTP/IMAP] takes $0 ${duration.toMillis()/1000.0} seconds") }
+            } catch (ex: Exception) {
+                ex.printStackTrace()
+            }
+        }
+    }
+    suspend fun sendEmail(vararg receivers: String, content: String, subject: String) {
+        val startTime = Instant.now()
+        withContext(Dispatchers.IO) {
+            try {
+                val mimeMessage = MimeMessage(this@EmailService.session)
+                if (this@EmailService.address.contains(";")) {
+                    val parts = this@EmailService.address.split(";")
+                    mimeMessage.setFrom(InternetAddress(parts[1], parts[0]))
+                } else {
+                    mimeMessage.setFrom(InternetAddress(this@EmailService.address.replace(";", ""), "Skript-Mailer"))
+                }
+                mimeMessage.subject = subject
+                if (content.isHTML()) mimeMessage.setContent(content, "text/html; charset=utf-8") else mimeMessage.setText(content)
+                this@EmailService.transport?.sendMessage(mimeMessage, receivers.map { InternetAddress(it) }.toTypedArray())
+            } catch (ex: Exception) {
+                SkriptMail.logger().exception(ex, "Failed to send email")
+            } finally {
+                val endTime = Instant.now()
+                val duration = Duration.between(startTime, endTime)
+                if (PROJECT_DEBUG && EMAIL_DEBUG) SkriptMail.logger().debug("Job: Sent email, time taken: ${duration.toMillis()/1000.0}s")
+            }
+        }
+    }
+
+    internal fun registerMailbox(): EmailMailbox? {
+        if (store == null) {
+            if (PROJECT_DEBUG && EMAIL_DEBUG) {
+                SkriptMail.logger().debug("Store cannot be null !$ '$serviceId'")
+                SkriptMail.logger().debug("Store: $store, null")
+            }
+            throw EmailException("Store cannot be null!", EmailExceptionType.INITIALIZE)
+        }
+        val result = runCatching {
+            if (PROJECT_DEBUG && EMAIL_DEBUG) { SkriptMail.logger().debug("Trying register mailbox !$ '$serviceId'") }
+            val mailbox = store?.let { EmailMailbox.register(serviceId, it, listOf()) }
+            if (PROJECT_DEBUG && EMAIL_DEBUG) { SkriptMail.logger().debug("Mailbox registered successfully. $0 $mailbox $1 '$serviceId'") }
+            if (mailbox != null) {
+                mailbox.bind(BukkitEmailMessageEvent(serviceId, true))
+                if (PROJECT_DEBUG && EMAIL_DEBUG) { SkriptMail.logger().debug("Mailbox bind event. $0 $mailbox $1 '$serviceId' $2 ${mailbox.event}") }
+                mailbox.folder.open(2)
+
+                if (PROJECT_DEBUG && EMAIL_DEBUG) { SkriptMail.logger().debug("Mailbox opened and folder in use $0 $mailbox, $1 ${mailbox.folder}") }
+                mailbox.folder.addMessageCountListener(object : MessageCountAdapter() {
+                    override fun messagesAdded(e: MessageCountEvent?) {
+                        runBlocking {
+                            performAsyncOperation {
+                                for (message in e!!.messages) {
+                                    mailbox.addMessage(message)
+                                    mailbox.emit { it.callEventWithMessage(message) }
+                                }
                             }
                         }
                     }
-                }
-            })
-            val runner = Bukkit.getAsyncScheduler().runAtFixedRate(SkriptMail.instance(), { folder.messageCount }, 0, 1, TimeUnit.SECONDS)
-            registeredListeners[id] = Pair(folder, runner)
-        }
+                })
 
-        private fun createSession(): Session {
-            val props = Properties().apply {
-                setProperty("mail.store.protocol", "imaps")
-                setProperty("mail.imaps.ssl.trust", "*")
-                setProperty("mail.imap.fetchsize", "3000000")
-            }
-            return Session.getInstance(props, null)
-        }
-
-        private fun connectStore(account: Account, session: Session): Store {
-            val store = session.getStore("imaps")
-            val (_, _, host) = account
-            val sanitizedHost = host.let {
-                if (host?.startsWith("imap") == true) {
-                    val i = host.indexOf(".")
-                    "imap.${host.substring(i + 1)}"
-                } else {
-                    host
-                }
-            }
-            store.connect(sanitizedHost, account.authUsername, account.authPassword)
-            return store
-        }
-
-        fun unregisterService(id: String) {
-            registeredServices[id]?.let { service ->
-                unregisterListener(id)
-                unregisterMailbox(id)
-                service.store.close()
-                registeredServices.remove(id)
-            }
-        }
-
-        private fun unregisterListener(id: String) {
-            registeredListeners[id]?.let { (folder, runner) ->
-                folder.close(true)
-                if (!runner.isCancelled) {
-                    runner.cancel()
-                }
-            }
-            registeredListeners.remove(id)
-        }
-
-        private fun unregisterMailbox(id: String) {
-            registeredMailbox[id]?.closeInbox()
-            registeredMailbox.remove(id)
-        }
-
-
-        private fun fetchMessagesAndUpdateInbox(folder: Folder, inbox: EmailInbox) {
-            val max = folder.messageCount
-            val perRequest = ConfigFields.MAILBOX_PER_REQUEST.toInt()
-            val left = if (max - perRequest < 0) 0 else max-perRequest
-
-            runBlocking {
-                val emailProcessingJobs = mutableListOf<Deferred<Boolean>>()
-                val messages: Array<Message> = folder.messages.sliceArray(left..<max)
-                val parsedMessages: MutableList<String> = mutableListOf()
-                for (email in messages) {
-                    val job = async {
-                        val mimeMessage = email as MimeMessage
-                        val contentType = mimeMessage.contentType
-                        val subject = mimeMessage.subject
-                        val content = when(contentType.contains("TEXT")) {
-                            true -> "Subject: $subject c:${mimeMessage.content}"
-                            else -> "Subject: $subject c:Unsupported body of email!"
-                        }
-                        parsedMessages.add(content)
-                    }
-                    emailProcessingJobs.add(job)
-                }
-                emailProcessingJobs.awaitAll()
-                inbox.updateInbox(*parsedMessages.toTypedArray())
-            }
-        }
-
-
-        private fun tryRegisterMailBox(folder: Folder, id: String): EmailInbox {
-            val inbox = EmailInbox(id, null)
-            inbox.openInbox()
-            runBlocking {
-                launch {
-                    val runnable = Runnable {
-                        if (folder.hasNewMessages()) {
-                            val time = measureTime { fetchMessagesAndUpdateInbox(folder, inbox) }
-                            if (ConfigFields.EMAIL_DEBUG == true) SkriptMail.logger().info("Emails was sync in &e$time")
-                        }
-                    }
-                    inbox.applyTask(runnable)
-                    registeredMailbox[id] = inbox
-                    val time = measureTime { fetchMessagesAndUpdateInbox(folder, inbox) }
-                    if (ConfigFields.EMAIL_DEBUG == true) SkriptMail.logger().info("Emails was sync in &e$time")
-                }
-            }
-            return inbox
-        }
-
-
-        fun tryGetInbox(id: String): EmailInbox? {
-            return this.registeredMailbox[id]
-        }
-    }
-
-    fun getFolder(folder: String): Folder? = store.getFolder(folder)
-}
-
-class EmailInbox(private val id: String, private var task: Runnable?) {
-    private val messages = mutableListOf<String?>()
-    private var scheduler: ScheduledExecutorService? = Executors.newScheduledThreadPool(2)
-    private var isClosed: Boolean = false
-    private val initialDelay = 0L
-    private val period = ConfigFields.MAILBOX_REFRESH_RATE
-
-    fun openInbox(initial: List<String?>? = null) {
-        try {
-            task?.let { scheduler?.scheduleAtFixedRate(it, initialDelay, period, ConfigFields.MAILBOX_RATE) }
-            initial?.let { messages.addAll(it) }
-            isClosed = false
-        } catch (ex: Exception) {
-            ex.printStackTrace()
-        }
-    }
-
-    fun closeInbox() {
-        scheduler?.shutdownNow(); scheduler = null; task = null; isClosed = true
-    }
-
-    fun updateInbox(vararg messages: String) {
-        CompletableFuture.runAsync {
-            val uniqueNewMessages = messages.filter { !this.messages.contains(it) }
-            val overflow = (this.messages.size + uniqueNewMessages.size) - 2 * ConfigFields.MAILBOX_PER_REQUEST
-            if (overflow > 0) {
-                this.messages.addAll(uniqueNewMessages.takeLast((uniqueNewMessages.size - overflow).toInt()))
+                val runner = Bukkit.getAsyncScheduler().runAtFixedRate(SkriptMail.instance(), { mailbox.folder.messageCount }, 0, 1L, TimeUnit.SECONDS)
+                runners += serviceId to runner
+                if (PROJECT_DEBUG && EMAIL_DEBUG) { SkriptMail.logger().debug("Runner for repeating task registered succesfully $0 $runner") }
+                if (PROJECT_DEBUG && EMAIL_DEBUG) { SkriptMail.logger().debug("Service for id $serviceId was registered succesfully $0 ${this@EmailService}") }
+                return mailbox
             } else {
-                this.messages.addAll(uniqueNewMessages)
+                SkriptMail.logger().error("Mailbox cannot be null!")
+            }
+            return null
+        }
+        result.onFailure {
+            if (it.message!!.contains("Store cannot be null!")) {
+                SkriptMail.logger().exception(it as Exception, "Store cannot be null!")
+                if (PROJECT_DEBUG && EMAIL_DEBUG) { SkriptMail.logger().debug("Exception threw $it") }
             }
         }
+        return result.getOrDefault(null)
     }
 
-    fun addMessage(message: String?) {
-        this.messages.add(message)
-    }
-
-    override fun toString(): String {
-        return "EmailInbox{messages=${messages.size}, id=$id, task=$task, scheduler: $scheduler, isClosed: $isClosed}"
-    }
-
-    fun applyTask(task: Runnable) {
-        this.task = task
-    }
-
-    fun getEmails(range: IntRange, mode: Int): Array<String?> {
-        if (this.messages.isEmpty()) return arrayOf()
-        return when (mode) {
-            2 -> messages.subList(range.first, range.last).toTypedArray()
-            1 -> messages.subList((messages.size - range.last), (messages.size - range.first)).toTypedArray()
-            else -> arrayOf()
-        }
-    }
-
-    fun getFirstEmail(): String? {
-        return messages.last()
-    }
-    fun getLastEmail(): String? {
-        return this.messages.first()
+    internal fun unregisterMailbox() {
+        store?.let { EmailMailbox.unregister(serviceId) }
+        val runner = runners.remove(serviceId)
+        if (PROJECT_DEBUG && EMAIL_DEBUG) SkriptMail.logger().debug("Removed runner $0 $runner")
     }
 }

@@ -1,13 +1,14 @@
 package cz.coffeerequired.skriptmail.skript
 
 import ch.njol.skript.classes.ClassInfo
+import ch.njol.skript.classes.EnumClassInfo
 import ch.njol.skript.classes.Parser
 import ch.njol.skript.lang.ParseContext
 import ch.njol.skript.registrations.Classes
 import cz.coffeerequired.skriptmail.api.email.Account
+import cz.coffeerequired.skriptmail.api.email.EmailHosts
 import cz.coffeerequired.skriptmail.api.email.Email
-import cz.coffeerequired.skriptmail.api.email.EmailAddress
-import cz.coffeerequired.skriptmail.api.email.ReceivedEmail
+import jakarta.mail.Message
 
 
 @Suppress("UNUSED")
@@ -28,17 +29,27 @@ object Types {
                             send port of {_email}
                             send auth of {_email}
                             send starttls of {_email}
+                            send service of {_email}
                         ```
                     """.trimIndent()
                 )
                 .since("1.0")
                 .parser(object : Parser<Account>() {
                     override fun toString(o: Account, flags: Int): String {
-                        return "email account for id %s".format(o.component7())
+                        return "email account for id '${o.id}'"
                     }
                     override fun toVariableNameString(o: Account): String { return toString(o, 0) }
                     override fun canParse(context: ParseContext): Boolean { return false }
                 })
+        )
+
+        Classes.registerClass(
+            EnumClassInfo(EmailHosts::class.java, "emailservice", "email service")
+                .user("email ?service?")
+                .name("Email Services")
+                .description("represent all predefined email services as like *GMAIL*, *YAHOO* etc.")
+                .examples("set {_email} to new email using predefined service GMAIL")
+                .since("1.1")
         )
 
         Classes.registerClass(
@@ -47,19 +58,25 @@ object Types {
                 .name("email")
                 .description("Representing new email form", """
                     ```applescript
-                        set {_email} to new email with credentials "smtp:google.com:567" using "test@gmail.com"
-                        set {_email} to new email using account "example"
+                        set {_email} to new email using {_account}
+                        send {_email} to console
+                    
+                        set {_email} to new email using credential string "smtp:gmail.com:587@auth=true&starttls=true" with address "test@gmail.com"
+                        send {_email} to console
+                    
+                        set {_email} to new email using predefined service OUTLOOK with address "test2@gmail.com"
+                        send {_email} to console
                     ````
                 """.trimIndent())
                 .parser(object  : Parser<Email>() {
                     override fun toString(o: Email, flags: Int): String {
                         return "email form of service: %s from %s and recipients %s with subject %s and content-length %s"
                             .format(
-                                o.field.component2()!!.value,
-                                o.field.component1(),
-                                if (o.recipient?.isEmpty() == true) "none" else o.recipient!!.joinToString { it },
-                                o.subject,
-                                if (o.content != null) o.content!!.length else ""
+                                o.account.id,
+                                o.account.component1(),
+                                if (o.component2()?.isEmpty() == true) "none" else o.component2()?.joinToString { it },
+                                o.component3(),
+                                o.component4()?.length
                             )
                     }
                     override fun toVariableNameString(o: Email): String { return toString(o, 0) }
@@ -68,34 +85,18 @@ object Types {
         ))
 
         Classes.registerClass(
-            ClassInfo(ReceivedEmail::class.java, "receivedemail")
-                .user("received email?")
-                .name("Received Email")
-                .description("The received email from IMAP Inbox")
-                .parser(object : Parser<ReceivedEmail>() {
-                    override fun toString(o: ReceivedEmail?, flags: Int): String {
-                        return o.toString()
+            ClassInfo(Message::class.java, "emailmessage")
+                .user("email message")
+                .name("Email Message")
+                .description("The message (email) object from IMAP")
+                .parser(object  : Parser<Message>() {
+                    override fun toString(o: Message?, flags: Int): String {
+                        if (o != null) {
+                            return "Email message ${o.from[0]}"
+                        }
+                        return "Email message"
                     }
-                    override fun toVariableNameString(o: ReceivedEmail?): String {
-                        return toString(o, 0)
-                    }
-                    override fun canParse(context: ParseContext): Boolean {
-                        return false
-                    }
-                })
-        )
-
-        Classes.registerClass(
-            ClassInfo(EmailAddress::class.java, "emailaddress")
-                .user("email address?")
-                .name("Email Address")
-                .description("Representing the Email Address (IAddress)")
-                .parser(object : Parser<EmailAddress>(){
-                    override fun toString(o: EmailAddress?, flags: Int): String {
-                        return o.toString()
-                    }
-
-                    override fun toVariableNameString(o: EmailAddress?): String {
+                    override fun toVariableNameString(o: Message?): String {
                         return toString(o, 0)
                     }
                     override fun canParse(context: ParseContext): Boolean {

@@ -1,8 +1,12 @@
+@file:Suppress("unused")
+
 package cz.coffeerequired.skriptmail.api
 
 import cz.coffeerequired.skriptmail.api.email.Account
 import org.bukkit.configuration.ConfigurationSection
 import java.awt.Color
+import java.util.regex.Matcher
+import java.util.regex.Pattern
 import kotlin.reflect.KClass
 
 fun String.times(times: Int): String {
@@ -11,6 +15,13 @@ fun String.times(times: Int): String {
         b.append(this)
     }
     return b.toString()
+}
+
+fun String.isHTML(): Boolean {
+    val pattern= "(?i)<([A-Z][A-Z0-9]*)\\b[^>]*>(.*?)</\\1>"
+    val p: Pattern = Pattern.compile(pattern)
+    val m: Matcher = p.matcher(this)
+    return m.find()
 }
 
 fun String.gradient(startColor: String, endColor: String, step: Int? = null): String {
