@@ -1,8 +1,8 @@
 [//]: # (<- Header ->)
-<p style="align: center; text-align: center">
-<img alt="SkMail" width="40%" src="https://github.com/cooffeeRequired/SkriptMail/assets/106232282/04fd017f-2ab2-4d37-a8e2-042d22587408">
+<p align="center" style="align: center; text-align: center">
+<img align="center" alt="SkMail" width="40%" src="https://github.com/cooffeeRequired/SkriptMail/assets/106232282/04fd017f-2ab2-4d37-a8e2-042d22587408">
 </p>
-<h1 style="align: center;">SkMail</h1>
+<h1 align="center">SkMail</h1>
 
 <h3 align="center">Simple Mailer for Skript using SMTP/POP3/IMAP</h3>
 <h6 align="center">The addon use SimpleMail Java API</h6>
@@ -32,6 +32,12 @@ accounts:
         port: 587
         auth: true
         starttls: true
+        auth-credentials:
+            username: Test@gmail.com
+            password: "password"
+    using_predefined:
+        address: Jorgeee;testing@gmail.com
+        service: GMAIL
         auth-credentials:
             username: Test@gmail.com
             password: "password"
@@ -124,8 +130,9 @@ In the addon folder (`SkriptMail`) you'll see a folder called `templates`, as we
     <p>The Registration {it::team} Team</p>
 </div>
 ```
-> [!IMPORTANT]  
-> **What exactly does the `{it::*}` mean?**
+
+> [!IMPORTANT]
+> <span style="color: #996be0"><b>What exactly does the `{it::*}` mean?</b></span>
 >
 > The `{it::name}` is a placeholder for a variable, which let's us render any template dynamically.
 > In the above template, we have two variable placeholders: `{it::name}` and `{it::team}`. These indicate that it will be changed to a real value when parsed.
@@ -143,13 +150,22 @@ For more info on placeholder variables, click [here](#placeholder-variables). No
 The email form represents an object that has `recipients`, a `subject`, and a `body` or `template`.
 There are two ways to create an email form. The first is by using the predefined accounts we talked about earlier:
 ```applescript
-set {_email} to new email form using account "my-secret-account"
-set {_email} to new email form using account {_account}
+    set {_email} to new email using {_account}
+    send {_email} to console
+
+    set {_email} to new email using predefined service OUTLOOK with address "test2@gmail.com"
+    send {_email} to console
+    
+    set {_account} to email account "using_predefined"
+    register service with id "test" using {_account}
+    
+    set {_email} to email using registered service "test"
+    send {_email} to console
 ```
 And the second is by using a `configuration string`:
 ```applescript
 # this is example for smtp.gmail.com service
-set {_email} to new email form with credentials "smtp:google.com:567@auth=true&starttls=true" using "test@gmail.com"
+set {_email} to new email using credential string "smtp:gmail.com:587@auth=true&starttls=true" with address "test@gmail.com"
 ```
 So we now have an empty email form. Let's assign some of those fields we mentioned earlier:
 ```applescript
@@ -183,8 +199,7 @@ set template of {_email} to email template "main" with data {_any::*}
 As you can see, pretty simple stuff. Just make sure that the indexes of the list that you provide as data match the indexes of the placeholder variables defined in the template. Also, if a placeholder variable defined in the template is not provided in the data to said template, it just remains unchanged. That pretty much covers setting the template, so let's move on.
 
 > [!IMPORTANT]  
-> **Body/Template Priority**
->
+> #### Body/Template Priority
 > You might've noticed in the email form example that we didn't set the template, we only set the body. That's because only one of those can be set at a time, either the body *or* the template. Additionally, a template will always take priority over a body. Let's take a look at the following example:
 > ```applescript
 > set template of {_email} to {_template}
@@ -205,19 +220,25 @@ register new service with id "test" and using account configured email account "
 #### Receiving messages
 If we have registered the service we can listen to it using `on email receive`
 ```applescript
-    send event-id to console
-    send event-subject to console
-    send event-message to console
-    send event-recipient to console
-    send event-received date to console
-    send event-sender to console
+    send "service id: %event-service id%" to console
+    send "subject: %event-email subject%" to console
+    send "message: %event-message%" to console
+    send "email: %event-email%" to console
+    send "recipient: %event-recipient%" to console
+    send "date: %event-received date%" to console
+    send "sender: %event-sender%" to console
+    mark event-email as read
+    set {_email} to new email using email account "using_predefined"
+    set body of {_email} to "<h1>Hello</h1>"
+    answer with {_email} to event-email
+    move event-email to "SomeWhere"
 ```
 And lastly, working with inbox
 ```applescript
 set {_mail} to first message of service "test"
 set {_mail} to last message of service "test"
 set {_mais::*} to first 10 messages of service "test"
-set {_mais::*} to last10 messages of service "test"
+set {_mais::*} to last 10 messages of service "test"
 ```
 
 ## FAQ
