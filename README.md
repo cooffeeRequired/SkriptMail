@@ -185,6 +185,27 @@ There are a few things to note about how templates work. An important feature wh
 - {otherIndex::it::prefix}
 ```
 
+### Example
+```applescript
+on load:
+    set {_account} to configured email account "gmail"
+
+    set {_email} to new email using {_account}
+
+    set {_prepared::name} to "Jorgee"
+
+    set recipients of {_email} to "x@email.com"
+    set subject of {_email} to "Registration Success - test"
+    set template of {_email} to email template "main" with data {_prepared::*}
+
+    post email {_email}
+    register service with id "gmail" using configured email account "gmail"
+
+command test:
+    trigger:
+        send first message of service "gmail"
+```
+
 #### Setting the template of an email form
 Let's take a look at how we can set the template of an email form without any placeholder variables:
 ```applescript
@@ -210,7 +231,7 @@ As you can see, pretty simple stuff. Just make sure that the indexes of the list
 ### Handeling Mailbox
 first we need to register a mailbox service we will do it thanks
 ```applescript
-register new service with id "test" and using account configured email account "example"
+register new service with id "test" and using configured email account "example"
 ```
 > [!IMPORTANT]  
 > always remember to terminate the service
