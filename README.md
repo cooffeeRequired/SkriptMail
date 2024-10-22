@@ -210,7 +210,7 @@ As you can see, pretty simple stuff. Just make sure that the indexes of the list
 ### Handeling Mailbox
 first we need to register a mailbox service we will do it thanks
 ```applescript
-register new service with id "test" and using account configured email account "example"
+register new service with id "test" and using configured email account "example"
 ```
 > [!IMPORTANT]  
 > always remember to terminate the service
