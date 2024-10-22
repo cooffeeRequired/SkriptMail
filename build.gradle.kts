@@ -6,21 +6,19 @@ plugins {
 }
 
 group = "cz.coffeerequired"
-version = "1.1"
+version = "1.2"
 
 repositories {
     mavenCentral()
-    maven(url = URL("https://repo.papermc.io/repository/maven-public/"))
-    maven(url = URL("https://repo.skriptlang.org/releases"))
+    maven(url = "https://repo.papermc.io/repository/maven-public/")
+    maven(url = "https://repo.skriptlang.org/releases")
 }
 
 dependencies {
 
-
-
     compileOnly("org.eclipse.jdt:org.eclipse.jdt.annotation:2.0.0")
     compileOnly("io.papermc.paper:paper-api:1.20.4-R0.1-SNAPSHOT")
-    compileOnly("com.github.SkriptLang:Skript:2.8.2")
+    compileOnly("com.github.SkriptLang:Skript:2.9.1")
     compileOnly("com.sun.activation:jakarta.activation:2.0.1")
     compileOnly("com.sun.mail:jakarta.mail:2.0.1")
     compileOnly("jakarta.xml.bind:jakarta.xml.bind-api:4.0.1")
@@ -54,7 +52,7 @@ tasks.register<Copy>("CopyJarLocal") {
 
 tasks.register<Copy>("CopyJarPublic") {
     from("./build/libs")
-    into("E:/Git/mc_server/plugins")
+    into("C:\\Users\\nexti\\Desktop\\mc-developing\\plugins")
     include("*.jar")
     rename { "skript-mail.jar" }
 }
@@ -69,8 +67,7 @@ tasks {
     }
 
     val build by getting {
-        finalizedBy("CopyJarLocal")
-            .finalizedBy("CopyJarPublic")
+        finalizedBy("CopyJarPublic")
     }
 
     processResources {

@@ -38,7 +38,7 @@ class EmailService(
          * @param block the block of code to execute as an asynchronous operation
          */
         @OptIn(DelicateCoroutinesApi::class)
-        suspend fun performAsyncOperation(block: suspend () -> Unit) {
+        fun performAsyncOperation(block: suspend () -> Unit) {
             val task = GlobalScope.async { block() }
             runBlocking { task.await() }
         }
@@ -87,7 +87,7 @@ class EmailService(
     private fun createIMAPConnection() {
         val store = session?.getStore("imap")
         store?.connect()
-        if (PROJECT_DEBUG && EMAIL_DEBUG) { SkriptMail.logger().debug("[IMAP] connection status $0 ${store?.isConnected} $1 $this") }
+        if (PROJECT_DEBUG && EMAIL_DEBUG) { SkriptMail.logger().debug("[IMAP] connection status $0 ${store?.isConnected} $1") }
         this.store = store
     }
 
@@ -138,7 +138,10 @@ class EmailService(
             } finally {
                 val endTime = Instant.now()
                 val duration = Duration.between(startTime, endTime)
-                if (PROJECT_DEBUG && EMAIL_DEBUG) SkriptMail.logger().debug("Job: Sent email, time taken: ${duration.toMillis()/1000.0}s")
+                if (PROJECT_DEBUG && EMAIL_DEBUG) {
+                    SkriptMail.logger().debug("Job: Sent email, time taken: ${duration.toMillis()/1000.0}s")
+                    SkriptMail.logger().debug("Email was sent!")
+                }
             }
         }
     }
@@ -152,36 +155,46 @@ class EmailService(
             throw EmailException("Store cannot be null!", EmailExceptionType.INITIALIZE)
         }
         val result = runCatching {
-            if (PROJECT_DEBUG && EMAIL_DEBUG) { SkriptMail.logger().debug("Trying register mailbox !$ '$serviceId'") }
-            val mailbox = store?.let { EmailMailbox.register(serviceId, it, listOf()) }
-            if (PROJECT_DEBUG && EMAIL_DEBUG) { SkriptMail.logger().debug("Mailbox registered successfully. $0 $mailbox $1 '$serviceId'") }
-            if (mailbox != null) {
-                mailbox.bind(BukkitEmailMessageEvent(serviceId, true))
-                if (PROJECT_DEBUG && EMAIL_DEBUG) { SkriptMail.logger().debug("Mailbox bind event. $0 $mailbox $1 '$serviceId' $2 ${mailbox.event}") }
-                mailbox.folder.open(2)
-                if (PROJECT_DEBUG && EMAIL_DEBUG) { SkriptMail.logger().debug("Mailbox opened and folder in use $0 $mailbox, $1 ${mailbox.folder}") }
-                mailbox.folder.addMessageCountListener(object : MessageCountAdapter() {
-                    override fun messagesAdded(e: MessageCountEvent?) {
-                        runBlocking {
-                            performAsyncOperation {
-                                for (message in e!!.messages) {
-                                    mailbox.addMessage(message)
-                                    mailbox.emit { it.callEventWithMessage(message) }
+            try {
+                if (PROJECT_DEBUG && EMAIL_DEBUG) { SkriptMail.logger().debug("Trying register mailbox !$ '$serviceId'") }
+                val mailbox = store?.let { EmailMailbox.register(serviceId, it, listOf()) }
+                if (PROJECT_DEBUG && EMAIL_DEBUG) { SkriptMail.logger().debug("Mailbox registered successfully. $0 $mailbox $1 '$serviceId'") }
+                if (mailbox != null) {
+                    mailbox.bind(BukkitEmailMessageEvent(serviceId, true))
+                    if (PROJECT_DEBUG && EMAIL_DEBUG) { SkriptMail.logger().debug("Mailbox bind event. $0 $mailbox $1 '$serviceId' $2 ${mailbox.event}") }
+                    mailbox.folder.open(2)
+                    if (PROJECT_DEBUG && EMAIL_DEBUG) { SkriptMail.logger().debug("Mailbox opened and folder in use $0 $mailbox, $1 ${mailbox.folder}") }
+
+
+                    mailbox.folder.addMessageCountListener(object : MessageCountAdapter() {
+                        override fun messagesAdded(e: MessageCountEvent?) {
+                            runBlocking {
+                                performAsyncOperation {
+                                    for (message in e!!.messages) {
+                                        mailbox.addMessage(message)
+                                        mailbox.emit { it.callEventWithMessage(message) }
+                                    }
                                 }
                             }
                         }
-                    }
-                })
+                    })
 
-                val runner = Bukkit.getAsyncScheduler().runAtFixedRate(SkriptMail.instance(), { mailbox.folder.messageCount }, 0, 1L, TimeUnit.SECONDS)
-                runners += serviceId to runner
-                if (PROJECT_DEBUG && EMAIL_DEBUG) { SkriptMail.logger().debug("Runner for repeating task registered succesfully $0 $runner") }
-                if (PROJECT_DEBUG && EMAIL_DEBUG) { SkriptMail.logger().debug("Service for id $serviceId was registered succesfully $0 ${this@EmailService}") }
-                this.mailbox = mailbox
-                println("t: ${this.mailbox}, m: $mailbox")
-                return mailbox
-            } else {
-                SkriptMail.logger().error("Mailbox cannot be null!")
+                    val runner = Bukkit.getAsyncScheduler().runAtFixedRate(SkriptMail.instance(), { mailbox.folder.messageCount }, 0, 1L, TimeUnit.SECONDS)
+                    runners += serviceId to runner
+
+
+                    if (PROJECT_DEBUG && EMAIL_DEBUG) { SkriptMail.logger().debug("Runner for repeating task registered successfully $0 $runner") }
+                    if (PROJECT_DEBUG && EMAIL_DEBUG) { SkriptMail.logger().debug("Service for id $serviceId was registered successfully") }
+
+
+                    this.mailbox = mailbox
+                    if (PROJECT_DEBUG && EMAIL_DEBUG) { SkriptMail.logger().debug("[INBOX] Mailbox was opened and successfully opened! $mailbox was registered successfully") }
+                    return mailbox
+                } else {
+                    SkriptMail.logger().error("Mailbox cannot be null!")
+                }
+            } catch (e: Exception) {
+                SkriptMail.logger().exception(e, "RunCatching:RegisterMailbox")
             }
             return null
         }
@@ -199,4 +212,10 @@ class EmailService(
         val runner = runners.remove(serviceId)
         if (PROJECT_DEBUG && EMAIL_DEBUG) SkriptMail.logger().debug("Removed runner $0 $runner")
     }
+
+    override fun toString(): String {
+        return "EmailService(serviceId='$serviceId', properties=$properties, usernameOrEmail='$usernameOrEmail', address='$address', host=$host)"
+    }
+
+
 }

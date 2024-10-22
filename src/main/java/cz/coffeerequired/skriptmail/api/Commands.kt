@@ -39,12 +39,11 @@ class Commands(private val logger: Logger, private val config: Config) : TabExec
         return completions
     }
 
-    @Suppress("unchecked_cast")
-    private fun <T>Class<T>.getValueByKey(key: String): T? {
+    private fun getValueByKey(key: String): Any? {
         try {
-            val declaredField: Field = this.getDeclaredField(key)
+            val declaredField: Field = ConfigFields.javaClass.getDeclaredField(key)
             declaredField.isAccessible = true
-            return declaredField.get(null) as T
+            return declaredField.get(null)
         } catch (e: NoSuchFieldException) {
             e.printStackTrace()
         } catch (e: IllegalAccessException) {
@@ -65,8 +64,12 @@ class Commands(private val logger: Logger, private val config: Config) : TabExec
         this.config.loadConfigs()
         var changed = 0
         before.forEach { (key, value) ->
-            val field = ConfigFields::class.java.getValueByKey(key)
-            if (value!!.toString() != field.toString()) { changed++; logger.info("key $key was changed!", sender = sender) }
+            try {
+                val field = getValueByKey(key)
+                if (value!!.toString() != field.toString()) { changed++; logger.info("key $key was changed!", sender = sender) }
+            } catch (e: Exception) {
+                logger.warn("Exception was thrown while loading config", e)
+            }
         }
         if (changed == 0) { logger.info("Nothing was changed..", sender = sender) }
         else {

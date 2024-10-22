@@ -68,8 +68,11 @@ class ExprInbox : SimpleExpression<Message>() {
     override fun get(event: Event?): Array<Message?> {
         val id = exprServiceId.getSingle(event)
         val provider = id?.let { EmailServiceProvider.registeredServices[id] }
+
+
         if (provider == null) { SkriptMail.logger().warn("&cThe service or mailbox of the given id $id weren't initialized yet."); return arrayOf() }
         val mailbox = provider.mailbox
+
         if (mailbox != null) {
             return if (multiple) {
                 val count = exprNum.getSingle(event)
